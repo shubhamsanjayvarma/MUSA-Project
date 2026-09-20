@@ -1,0 +1,150 @@
+// prisma/schema.prisma
+// Source of truth: docs/DATABASE.md §4
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Recruiter {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique @db.VarChar(255)
+  name         String   @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  interviews Interview[]
+  reviews    RecruiterReview[]
+
+  @@map("recruiters")
+}
+
+model Interview {
+  id             String    @id @default(uuid()) @db.Uuid
+  recruiterId    String    @map("recruiter_id") @db.Uuid
+  title          String    @db.VarChar(255)
+  candidateName  String    @map("candidate_name") @db.VarChar(255)
+  candidateEmail String    @map("candidate_email") @db.VarChar(255)
+  joinToken      String    @unique @map("join_token") @db.VarChar(64)
+  tokenExpiresAt DateTime  @map("token_expires_at") @db.Timestamptz
+  status         String    @default("pending") @db.VarChar(50)
+  scheduledAt    DateTime? @map("scheduled_at") @db.Timestamptz
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  recruiter Recruiter @relation(fields: [recruiterId], references: [id])
+  sessions  Session[]
+
+  @@index([recruiterId], map: "idx_interviews_recruiter")
+  @@index([status], map: "idx_interviews_status")
+  @@index([joinToken], map: "idx_interviews_token")
+  @@map("interviews")
+}
+
+model Session {
+  id                    String    @id @default(uuid()) @db.Uuid
+  interviewId           String    @map("interview_id") @db.Uuid
+  startedAt             DateTime  @default(now()) @map("started_at") @db.Timestamptz
+  endedAt               DateTime? @map("ended_at") @db.Timestamptz
+  consentGiven          Boolean   @default(false) @map("consent_given")
+  consentGivenAt        DateTime? @map("consent_given_at") @db.Timestamptz
+  systemCheckPassed     Boolean   @default(false) @map("system_check_passed")
+  currentIntegrityScore Int       @default(100) @map("current_integrity_score")
+  currentRiskState      String    @default("normal") @map("current_risk_state") @db.VarChar(50)
+  peakIntegrityScore    Int       @default(100) @map("peak_integrity_score")
+  eventSequenceNumber   Int       @default(0) @map("event_sequence_number")
+  metadata              Json      @default("{}") @db.JsonB
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  interview     Interview        @relation(fields: [interviewId], references: [id])
+  events        DetectionEvent[]
+  riskSnapshots RiskSnapshot[]
+  evidenceItems EvidenceItem[]
+  review        RecruiterReview?
+
+  @@index([interviewId], map: "idx_sessions_interview")
+  @@map("sessions")
+}
+
+model DetectionEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  sessionId       String   @map("session_id") @db.Uuid
+  sequenceNumber  Int      @map("sequence_number")
+  eventType       String   @map("event_type") @db.VarChar(100)
+  detectorId      String   @map("detector_id") @db.VarChar(100)
+  clientTimestamp DateTime @map("client_timestamp") @db.Timestamptz
+  serverTimestamp DateTime @default(now()) @map("server_timestamp") @db.Timestamptz
+  severity        String   @db.VarChar(50)
+  confidence      Float
+  payload         Json     @db.JsonB
+  scoreBefore     Int?     @map("score_before")
+  scoreAfter      Int?     @map("score_after")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  session       Session        @relation(fields: [sessionId], references: [id])
+  riskSnapshots RiskSnapshot[]
+  evidenceItems EvidenceItem[]
+
+  @@unique([sessionId, sequenceNumber], map: "idx_events_session_seq")
+  @@index([sessionId], map: "idx_events_session")
+  @@index([sessionId, serverTimestamp], map: "idx_events_session_time")
+  @@index([eventType], map: "idx_events_type")
+  @@map("detection_events")
+}
+
+model RiskSnapshot {
+  id                  String   @id @default(uuid()) @db.Uuid
+  sessionId           String   @map("session_id") @db.Uuid
+  timestamp           DateTime @default(now()) @db.Timestamptz
+  integrityScore      Int      @map("integrity_score")
+  riskState           String   @map("risk_state") @db.VarChar(50)
+  explanation         String   @db.Text
+  contributingEventId String?  @map("contributing_event_id") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  session           Session         @relation(fields: [sessionId], references: [id])
+  contributingEvent DetectionEvent? @relation(fields: [contributingEventId], references: [id])
+
+  @@index([sessionId], map: "idx_risk_session")
+  @@map("risk_snapshots")
+}
+
+model EvidenceItem {
+  id                 String    @id @default(uuid()) @db.Uuid
+  sessionId          String    @map("session_id") @db.Uuid
+  eventId            String?   @map("event_id") @db.Uuid
+  evidenceType       String    @map("evidence_type") @db.VarChar(50)
+  timestamp          DateTime  @db.Timestamptz
+  filePath           String?   @map("file_path") @db.VarChar(500)
+  fileSizeBytes      Int?      @map("file_size_bytes")
+  metadata           Json      @default("{}") @db.JsonB
+  retentionExpiresAt DateTime? @map("retention_expires_at") @db.Timestamptz
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  session Session         @relation(fields: [sessionId], references: [id])
+  event   DetectionEvent? @relation(fields: [eventId], references: [id])
+
+  @@index([sessionId], map: "idx_evidence_session")
+  @@map("evidence_items")
+}
+
+model RecruiterReview {
+  id          String   @id @default(uuid()) @db.Uuid
+  sessionId   String   @unique @map("session_id") @db.Uuid
+  recruiterId String   @map("recruiter_id") @db.Uuid
+  decision    String   @db.VarChar(50)
+  notes       String?  @db.Text
+  reviewedAt  DateTime @default(now()) @map("reviewed_at") @db.Timestamptz
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  session   Session   @relation(fields: [sessionId], references: [id])
+  recruiter Recruiter @relation(fields: [recruiterId], references: [id])
+
+  @@map("recruiter_reviews")
+}
