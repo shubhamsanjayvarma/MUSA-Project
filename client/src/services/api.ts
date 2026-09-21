@@ -103,6 +103,8 @@ const setCandidateToken = (token: string): void => {
   sessionStorage.setItem('interviewshield_session_token', token);
 };
 
+const API_BASE = (import.meta.env?.VITE_API_URL as string) || '';
+
 async function request<T>(
   url: string,
   options: RequestInit = {},
@@ -116,7 +118,9 @@ async function request<T>(
     headers.set('Authorization', `Bearer ${authToken}`);
   }
 
-  const res = await fetch(url, {
+  const targetUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+
+  const res = await fetch(targetUrl, {
     ...options,
     headers,
   });
