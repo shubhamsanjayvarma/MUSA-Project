@@ -87,7 +87,7 @@ export class InterviewService {
       prisma.interview.count({ where }),
     ]);
 
-    const formatted = interviews.map((interview) => {
+    const formatted = (interviews as any[]).map((interview: any) => {
       const latest = interview.sessions[0];
       return {
         id: interview.id,
@@ -150,7 +150,7 @@ export class InterviewService {
       tokenExpiresAt: interview.tokenExpiresAt.toISOString(),
       status: interview.status,
       scheduledAt: interview.scheduledAt ? interview.scheduledAt.toISOString() : null,
-      sessions: interview.sessions.map((s) => ({
+      sessions: (interview.sessions as any[]).map((s: any) => ({
         id: s.id,
         startedAt: s.startedAt.toISOString(),
         endedAt: s.endedAt ? s.endedAt.toISOString() : null,
