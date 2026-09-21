@@ -26,6 +26,30 @@ const configSchema = z
       message: 'JWT_SECRET must be explicitly set and cannot use the development default in production',
       path: ['JWT_SECRET'],
     }
+  )
+  .refine(
+    (data) => {
+      if (data.NODE_ENV === 'production' && data.DATABASE_URL.includes('interviewshield:devpassword@localhost')) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'DATABASE_URL must be configured for production database and cannot use localhost default',
+      path: ['DATABASE_URL'],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.NODE_ENV === 'production' && data.CLIENT_URL.includes('localhost')) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'CLIENT_URL must be configured for production domain and cannot use localhost default',
+      path: ['CLIENT_URL'],
+    }
   );
 
 const parsed = configSchema.safeParse(process.env);

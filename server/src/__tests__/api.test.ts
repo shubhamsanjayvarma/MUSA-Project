@@ -3,6 +3,7 @@ import request from 'supertest';
 import bcrypt from 'bcrypt';
 import { app } from '../app.js';
 import { prisma } from '../db/client.js';
+import { eventService } from '../services/event.service.js';
 
 describe('InterviewShield API Integration Tests', () => {
   let demoRecruiterToken = '';
@@ -444,6 +445,89 @@ describe('InterviewShield API Integration Tests', () => {
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('GET /api/sessions/:id/evidence should return evidence items list', async () => {
+      const res = await request(app)
+        .get(`/api/sessions/${createdSessionId}/evidence`)
+        .set('Authorization', `Bearer ${demoRecruiterToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.data)).toBe(true);
+    });
+
+    it('GET /api/sessions/:id/evidence should reject unauthorized recruiter', async () => {
+      const res = await request(app)
+        .get(`/api/sessions/${createdSessionId}/evidence`)
+        .set('Authorization', `Bearer ${otherRecruiterToken}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('NOT_FOUND');
+    });
+
+    it('GET /api/evidence/:id/file should return 404 for nonexistent evidence', async () => {
+      const res = await request(app)
+        .get('/api/evidence/00000000-0000-0000-0000-000000000000/file')
+        .set('Authorization', `Bearer ${demoRecruiterToken}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('NOT_FOUND');
+    });
+  });
+
+  describe('EVENT SERVICE VALIDATION', () => {
+    it('should reject detection event with confidence > 1.0', async () => {
+      await expect(
+        eventService.processEvent(createdSessionId, 999, {
+          eventType: 'tab_hidden',
+          detectorId: 'tab_detector',
+          timestamp: Date.now(),
+          severity: 'high',
+          confidence: 1.5,
+          payload: {},
+        })
+      ).rejects.toThrow('Invalid detection event schema');
+    });
+
+    it('should reject detection event with confidence < 0.0', async () => {
+      await expect(
+        eventService.processEvent(createdSessionId, 998, {
+          eventType: 'tab_hidden',
+          detectorId: 'tab_detector',
+          timestamp: Date.now(),
+          severity: 'high',
+          confidence: -0.2,
+          payload: {},
+        })
+      ).rejects.toThrow('Invalid detection event schema');
+    });
+
+    it('should safely handle duplicate sequence numbers without throwing', async () => {
+      // First submission
+      const first = await eventService.processEvent(createdSessionId, 100, {
+        eventType: 'tab_hidden',
+        detectorId: 'tab_detector',
+        timestamp: Date.now(),
+        severity: 'high',
+        confidence: 1.0,
+        payload: {},
+      });
+      expect(first.savedEventId).not.toBe('duplicate');
+
+      // Duplicate submission
+      const dup = await eventService.processEvent(createdSessionId, 100, {
+        eventType: 'tab_hidden',
+        detectorId: 'tab_detector',
+        timestamp: Date.now(),
+        severity: 'high',
+        confidence: 1.0,
+        payload: {},
+      });
+      expect(dup.savedEventId).toBe('duplicate');
+      expect(dup.scoreChanged).toBe(false);
     });
   });
 });

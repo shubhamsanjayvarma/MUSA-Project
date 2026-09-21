@@ -19,6 +19,7 @@ import {
 interface AuthenticatedSocket extends WebSocket {
   sessionId?: string;
   role?: 'candidate' | 'recruiter';
+  userId?: string;
   isAlive?: boolean;
 }
 
@@ -72,6 +73,7 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
         const authWs = ws as AuthenticatedSocket;
         authWs.sessionId = sessionId;
         authWs.role = (payload.role as 'candidate' | 'recruiter') || 'candidate';
+        authWs.userId = payload.sub;
         authWs.isAlive = true;
         wss.emit('connection', authWs, request);
       });
@@ -108,6 +110,7 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
       try {
         const session = await prisma.session.findUnique({
           where: { id: sessionId },
+          include: { interview: true },
         });
 
         if (!session) {
@@ -123,6 +126,16 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
           return null;
         }
 
+        // Validate recruiter owns the interview
+        if (ws.role === 'recruiter' && ws.userId && session.interview.recruiterId !== ws.userId) {
+          logger.warn(
+            { sessionId, recruiterId: ws.userId, ownerId: session.interview.recruiterId },
+            'Unauthorized recruiter attempted to connect to session WebSocket'
+          );
+          ws.close(4003, 'Forbidden');
+          return null;
+        }
+
         sessionVerified = true;
 
         // Send session:joined confirmation
@@ -133,9 +146,26 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
             interviewId: session.interviewId,
             currentScore: session.currentIntegrityScore,
             currentRiskState: session.currentRiskState as any,
+            interviewTitle: session.interview.title,
+            serverTime: new Date().toISOString(),
           },
         };
         ws.send(JSON.stringify(welcomeMsg));
+
+        // Also send canonical session:confirmed
+        const confirmedMsg: WSServerMessage = {
+          type: 'session:confirmed',
+          payload: {
+            sessionId: session.id,
+            interviewId: session.interviewId,
+            currentScore: session.currentIntegrityScore,
+            currentRiskState: session.currentRiskState as any,
+            interviewTitle: session.interview.title,
+            serverTime: new Date().toISOString(),
+          },
+        };
+        ws.send(JSON.stringify(confirmedMsg));
+
         return session;
       } catch (err) {
         logger.error({ err, sessionId }, 'Error verifying session on WS connection');
@@ -153,7 +183,7 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
         const rawText = data.toString();
         const message = JSON.parse(rawText) as WSClientMessage;
 
-        if (message.type === 'ping') {
+        if (message.type === 'ping' || message.type === 'session:heartbeat') {
           const pong: WSServerMessage = { type: 'pong' };
           ws.send(JSON.stringify(pong));
           return;
@@ -210,7 +240,7 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
         }
 
         // Custom session consent message
-        if ((message as any).type === 'session:consent') {
+        if (message.type === 'session:consent') {
           await prisma.session.update({
             where: { id: sessionId },
             data: {
@@ -221,9 +251,51 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
 
           const ackMsg: WSServerMessage = {
             type: 'ack',
-            sequenceNumber: (message as any).sequenceNumber || 0,
+            sequenceNumber: message.sequenceNumber || 0,
             payload: {
-              sequenceNumber: (message as any).sequenceNumber || 0,
+              sequenceNumber: message.sequenceNumber || 0,
+              receivedAt: Date.now(),
+            },
+          };
+          ws.send(JSON.stringify(ackMsg));
+          return;
+        }
+
+        // Session start message
+        if (message.type === 'session:start') {
+          await prisma.session.update({
+            where: { id: sessionId },
+            data: {
+              systemCheckPassed: true,
+            },
+          });
+
+          const ackMsg: WSServerMessage = {
+            type: 'ack',
+            sequenceNumber: message.sequenceNumber || 0,
+            payload: {
+              sequenceNumber: message.sequenceNumber || 0,
+              receivedAt: Date.now(),
+            },
+          };
+          ws.send(JSON.stringify(ackMsg));
+          return;
+        }
+
+        // Session end message
+        if (message.type === 'session:end') {
+          await prisma.session.update({
+            where: { id: sessionId },
+            data: {
+              endedAt: new Date(),
+            },
+          });
+
+          const ackMsg: WSServerMessage = {
+            type: 'ack',
+            sequenceNumber: message.sequenceNumber || 0,
+            payload: {
+              sequenceNumber: message.sequenceNumber || 0,
               receivedAt: Date.now(),
             },
           };

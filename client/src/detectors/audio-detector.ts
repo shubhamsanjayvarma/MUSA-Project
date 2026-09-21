@@ -31,6 +31,7 @@ export class AudioDetector implements Detector {
   private lastSpeechTimestamp = Date.now();
   private lastSilenceEventFiredAt = 0;
   private currentSpeechState = false;
+  private wasSpeaking = false;
 
   async initialize(config?: DetectorConfig): Promise<void> {
     if (config) {
@@ -48,6 +49,7 @@ export class AudioDetector implements Detector {
     this.lastSpeechTimestamp = Date.now();
     this.lastSilenceEventFiredAt = 0;
     this.currentSpeechState = false;
+    this.wasSpeaking = false;
 
     // Check if AudioContext is supported in current environment
     if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
@@ -123,7 +125,23 @@ export class AudioDetector implements Detector {
 
     if (isSpeechNow) {
       this.lastSpeechTimestamp = now;
+      if (!this.wasSpeaking) {
+        this.wasSpeaking = true;
+        const confidence = Math.min(1.0, Math.max(0.5, volume / (this.speechVolumeThreshold * 2)));
+        events.push({
+          eventType: EVENT_TYPES.AUDIO_ACTIVITY_DETECTED,
+          detectorId: this.id,
+          timestamp: now,
+          severity: 'info',
+          confidence: Number(confidence.toFixed(2)),
+          payload: {
+            averageVolume: volume,
+            isSpeechLikely: true,
+          },
+        });
+      }
     } else {
+      this.wasSpeaking = false;
       const silenceDurationMs = now - this.lastSpeechTimestamp;
       const thresholdMs = this.silenceThresholdSeconds * 1000;
       const cooldownMs = this.cooldownSeconds * 1000;
@@ -166,6 +184,7 @@ export class AudioDetector implements Detector {
     this.analyser = null;
     this.dataArray = null;
     this.currentSpeechState = false;
+    this.wasSpeaking = false;
     this.active = false;
   }
 
@@ -180,10 +199,29 @@ export class AudioDetector implements Detector {
   /**
    * Helper to simulate audio states in test environments
    */
-  simulateSpeechState(speaking: boolean): void {
+  simulateSpeechState(speaking: boolean): DetectionEvent[] {
     this.currentSpeechState = speaking;
+    const now = Date.now();
+    const events: DetectionEvent[] = [];
     if (speaking) {
-      this.lastSpeechTimestamp = Date.now();
+      this.lastSpeechTimestamp = now;
+      if (!this.wasSpeaking) {
+        this.wasSpeaking = true;
+        events.push({
+          eventType: EVENT_TYPES.AUDIO_ACTIVITY_DETECTED,
+          detectorId: this.id,
+          timestamp: now,
+          severity: 'info',
+          confidence: 0.85,
+          payload: {
+            averageVolume: 0.05,
+            isSpeechLikely: true,
+          },
+        });
+      }
+    } else {
+      this.wasSpeaking = false;
     }
+    return events;
   }
 }

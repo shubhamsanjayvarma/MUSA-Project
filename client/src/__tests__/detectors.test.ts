@@ -76,6 +76,30 @@ describe('FaceDetector', () => {
     expect(events[0].payload.faceCount).toBe(2);
   });
 
+  it('should not emit anomaly events when exactly 1 face is present', () => {
+    const events = detector.simulateDetection(1, 0.95);
+    expect(events).toHaveLength(0);
+  });
+
+  it('should emit face_absent when face is missing past threshold, then face_returned on recovery', async () => {
+    const fastDetector = new FaceDetector();
+    await fastDetector.initialize({ absenceThresholdSeconds: 0 });
+
+    // Missing face
+    const absentEvents = fastDetector.simulateDetection(0);
+    expect(absentEvents).toHaveLength(1);
+    expect(absentEvents[0].eventType).toBe(EVENT_TYPES.FACE_ABSENT);
+    expect(absentEvents[0].severity).toBe('medium');
+
+    // Face returns
+    const returnedEvents = fastDetector.simulateDetection(1);
+    expect(returnedEvents).toHaveLength(1);
+    expect(returnedEvents[0].eventType).toBe(EVENT_TYPES.FACE_RETURNED);
+    expect(returnedEvents[0].severity).toBe('info');
+
+    fastDetector.dispose();
+  });
+
   it('should dispose cleanly', () => {
     detector.dispose();
     expect(detector.isActive).toBe(false);
@@ -133,9 +157,16 @@ describe('AudioDetector', () => {
     expect(detector.id).toBe('audio_detector');
   });
 
-  it('should track speech state correctly', () => {
-    detector.simulateSpeechState(true);
+  it('should track speech state correctly and emit audio_activity_detected on speech transition', () => {
+    const events = detector.simulateSpeechState(true);
     expect(detector.isSpeechLikely).toBe(true);
+    expect(events).toHaveLength(1);
+    expect(events[0].eventType).toBe(EVENT_TYPES.AUDIO_ACTIVITY_DETECTED);
+    expect(events[0].severity).toBe('info');
+
+    // Speech remains -> no duplicate event
+    const nextEvents = detector.detect({ timestamp: Date.now() });
+    expect(nextEvents).toHaveLength(0);
 
     detector.simulateSpeechState(false);
     expect(detector.isSpeechLikely).toBe(false);
@@ -174,6 +205,14 @@ describe('AVCorrelator', () => {
     expect(events[0].eventType).toBe(EVENT_TYPES.AV_MISMATCH);
     expect(events[0].severity).toBe('medium');
     expect(events[0].confidence).toBe(0.6);
+  });
+
+  it('should produce zero mismatch events when audio speech and facial movement are consistent', () => {
+    faceDetector.setMouthMoving(true);
+    audioDetector.simulateSpeechState(true);
+
+    const events = correlator.detect({ timestamp: Date.now() });
+    expect(events).toHaveLength(0);
   });
 
   it('should dispose cleanly', () => {
@@ -229,6 +268,23 @@ describe('DetectorOrchestrator', () => {
     expect(orchestrator).toBeDefined();
 
     orchestrator.dispose();
+  });
+
+  it('should track and report internal detector health states', async () => {
+    const tabDetector = new TabDetector();
+    await tabDetector.initialize();
+
+    const orchestrator = new DetectorOrchestrator({ intervalMs: 100 });
+    orchestrator.registerDetector(tabDetector);
+
+    await orchestrator.runCycle();
+
+    expect(orchestrator.getDetectorHealth('tab_detector')).toBe('ACTIVE');
+    const allHealth = orchestrator.getAllHealth();
+    expect(allHealth.tab_detector).toBe('ACTIVE');
+
+    orchestrator.dispose();
+    expect(orchestrator.getDetectorHealth('tab_detector')).toBe('DISABLED');
   });
 });
 

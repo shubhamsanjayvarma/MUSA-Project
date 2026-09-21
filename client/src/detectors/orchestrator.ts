@@ -7,6 +7,8 @@
 import { DetectionEvent } from '@interviewshield/shared';
 import { Detector, DetectorInput } from './detector.js';
 
+export type DetectorHealth = 'ACTIVE' | 'DEGRADED' | 'FAILED' | 'DISABLED';
+
 export interface OrchestratorOptions {
   intervalMs?: number; // default: 500ms (2 fps)
   onEvents?: (events: DetectionEvent[]) => void;
@@ -41,6 +43,7 @@ export class DetectorOrchestrator {
   private videoElement: HTMLVideoElement | null = null;
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
+  private healthState: Map<string, DetectorHealth> = new Map();
 
   constructor(options?: OrchestratorOptions) {
     this.intervalMs = options?.intervalMs ?? 500;
@@ -110,13 +113,22 @@ export class DetectorOrchestrator {
     };
 
     for (const detector of this.detectors) {
-      if (!detector.isActive) continue;
+      if (!detector.isActive) {
+        this.healthState.set(detector.id, 'DISABLED');
+        continue;
+      }
       try {
         const events = await Promise.resolve(detector.detect(input));
         if (events && events.length > 0) {
           cycleEvents.push(...events);
         }
+        if (this.healthState.get(detector.id) === 'FAILED') {
+          this.healthState.set(detector.id, 'DEGRADED');
+        } else {
+          this.healthState.set(detector.id, 'ACTIVE');
+        }
       } catch (err) {
+        this.healthState.set(detector.id, 'FAILED');
         console.error(`[Orchestrator] Detector ${detector.id} threw error in detect cycle:`, err);
       }
     }
@@ -183,9 +195,24 @@ export class DetectorOrchestrator {
       }
     }
     this.detectors = [];
+    this.healthState.clear();
     this.videoElement = null;
     this.canvas = null;
     this.ctx = null;
+  }
+
+  getDetectorHealth(id: string): DetectorHealth {
+    const detector = this.detectors.find((d) => d.id === id);
+    if (!detector || !detector.isActive) return 'DISABLED';
+    return this.healthState.get(id) || 'ACTIVE';
+  }
+
+  getAllHealth(): Record<string, DetectorHealth> {
+    const result: Record<string, DetectorHealth> = {};
+    for (const d of this.detectors) {
+      result[d.id] = this.getDetectorHealth(d.id);
+    }
+    return result;
   }
 
   get running(): boolean {
