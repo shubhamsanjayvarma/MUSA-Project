@@ -2,6 +2,9 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import pino from 'pino';
 import { healthRouter } from './api/routes/health.routes.js';
+import { authRouter } from './api/routes/auth.routes.js';
+import { interviewRouter } from './api/routes/interview.routes.js';
+import { sessionRouter } from './api/routes/session.routes.js';
 import { config } from './config.js';
 
 export const logger = pino({
@@ -35,6 +38,9 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 
 // API Routes
 app.use('/api/health', healthRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/interviews', interviewRouter);
+app.use('/api/sessions', sessionRouter);
 
 // 404 Handler
 app.use((_req: Request, res: Response) => {
