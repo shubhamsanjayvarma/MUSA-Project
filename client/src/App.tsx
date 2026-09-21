@@ -850,8 +850,10 @@ const CandidateInterviewPage: React.FC = () => {
 
       // B. WebSocket & Event Buffer
       const token = sessionApi.getCandidateToken() || '';
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${wsProtocol}//${window.location.host}/ws/session/${sessionId}`;
+      const envWs = import.meta.env?.VITE_WS_URL as string;
+      const wsUrl = envWs
+        ? `${envWs}/ws/session/${sessionId}`
+        : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/session/${sessionId}`;
 
       const wsClient = new WSClient({
         wsUrl,
