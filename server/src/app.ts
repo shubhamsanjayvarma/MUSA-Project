@@ -21,9 +21,21 @@ export const logger = pino({
 export const app = express();
 
 // Middleware
+const allowedOrigins = [
+  config.CLIENT_URL,
+  'https://interviewshieldmusa.vercel.app',
+  'http://localhost:5173',
+];
+
 app.use(
   cors({
-    origin: config.CLIENT_URL,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
     credentials: true,
   })
 );
