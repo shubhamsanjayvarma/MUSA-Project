@@ -33,3 +33,37 @@ sessionRouter.get(
     }
   }
 );
+
+sessionRouter.patch(
+  '/:id',
+  requireSessionOrRecruiterAuth,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await sessionService.updateSession(
+        req.params.id,
+        req.body,
+        req.user!
+      );
+
+      if ('code' in result) {
+        res.status(result.status).json({
+          success: false,
+          data: null,
+          error: {
+            code: result.code,
+            message: result.message,
+          },
+        });
+        return;
+      }
+
+      res.status(result.status).json({
+        success: true,
+        data: result.data,
+        error: null,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);

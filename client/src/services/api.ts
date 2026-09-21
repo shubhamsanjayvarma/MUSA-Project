@@ -204,5 +204,26 @@ export const sessionApi = {
       candidateToken || undefined
     );
   },
+  update: async (
+    sessionId: string,
+    updates: {
+      consentGiven?: boolean;
+      systemCheckPassed?: boolean;
+      systemCheckDetails?: Record<string, unknown>;
+      ended?: boolean;
+      endReason?: string;
+    }
+  ): Promise<Partial<SessionDetails>> => {
+    const candidateToken = getCandidateToken();
+    return request<Partial<SessionDetails>>(
+      `/api/sessions/${sessionId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+      },
+      candidateToken || undefined
+    );
+  },
   getCandidateToken,
+  setCandidateToken,
 };

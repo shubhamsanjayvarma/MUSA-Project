@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate, useParams, useNavigate } from 'react-router-dom';
 import {
   Shield,
   CheckCircle,
-  Video,
+  CheckCircle2,
   Lock,
   Activity,
   AlertTriangle,
@@ -13,8 +13,20 @@ import {
   LogOut,
   Calendar,
   Loader2,
+  Camera,
+  Mic,
+  MicOff,
+  Monitor,
+  Clock,
+  Power,
+  ShieldCheck,
 } from 'lucide-react';
 import { authApi, interviewApi, sessionApi, Interview, SessionDetails } from './services/api.js';
+import { SystemCheck, SystemCheckResult } from './components/SystemCheck.js';
+import { mediaManager } from './services/media-manager.js';
+import { WSClient, ConnectionState } from './services/ws-client.js';
+import { EventBuffer } from './services/event-buffer.js';
+import { DetectorOrchestrator, TabDetector, FaceDetector } from './detectors/index.js';
 
 // Header Component
 const Header: React.FC = () => {
@@ -660,95 +672,80 @@ const SessionDetailPage: React.FC = () => {
 const CandidateJoinPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
 
-  const handleJoin = async () => {
+  const handleSystemCheckComplete = async (result: SystemCheckResult) => {
     if (!token) return;
-    setLoading(true);
     setError(null);
 
     try {
-      const data = await interviewApi.join(token);
-      navigate(`/interview/${data.sessionId}`);
+      // 1. Hand off verified streams
+      mediaManager.setCameraStream(result.cameraStream);
+      mediaManager.setScreenStream(result.screenStream);
+
+      // 2. Join session via token
+      const joinData = await interviewApi.join(token);
+
+      // 3. Mark consent and system check status in database
+      await sessionApi.update(joinData.sessionId, {
+        consentGiven: true,
+        systemCheckPassed:
+          (result.camera === 'PASSED' || result.camera === 'SKIPPED') &&
+          (result.mic === 'PASSED' || result.mic === 'SKIPPED'),
+        systemCheckDetails: {
+          camera: result.camera,
+          mic: result.mic,
+          screen: result.screen,
+          browser: result.browser,
+        },
+      });
+
+      // 4. Navigate to live interview session room
+      navigate(`/interview/${joinData.sessionId}`);
     } catch (err: unknown) {
       const errorObj = err as Error & { code?: string };
       setError({
         code: errorObj.code || 'JOIN_FAILED',
-        message: errorObj.message || 'Failed to join interview session',
+        message: errorObj.message || 'Failed to initialize candidate interview session.',
       });
-    } finally {
-      setLoading(false);
     }
   };
 
-  return (
-    <div style={{ maxWidth: '640px', margin: '30px auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
-      <div className="card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-full)', backgroundColor: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Video size={20} color="#3b82f6" />
-          </div>
-          <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Pre-Interview System Check & Consent</h2>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>
-              Token: {token?.slice(0, 16)}...
-            </p>
-          </div>
-        </div>
-
-        {error ? (
-          <div style={{ padding: '16px', borderRadius: 'var(--radius-sm)', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--color-high-risk)', color: '#fca5a5', marginBottom: 'var(--space-md)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
-              <AlertTriangle size={18} />
-              <span>Unable to Join Session</span>
-            </div>
-            <p style={{ fontSize: '0.875rem', marginTop: '6px', color: 'var(--color-text)' }}>
-              {error.message}
-            </p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '8px' }}>
-              Error code: {error.code}. Please contact your recruiter if this error persists.
-            </p>
-          </div>
-        ) : (
-          <>
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-lg)', lineHeight: 1.6 }}>
-              InterviewShield verifies behavioral consistency on your local device. Your video and audio streams remain private to your local browser environment.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
-                <span style={{ fontSize: '0.875rem' }}>Camera Stream Capability</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-normal)', fontSize: '0.75rem', fontWeight: 600 }}>
-                  <CheckCircle size={14} /> Ready
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
-                <span style={{ fontSize: '0.875rem' }}>Microphone Capability</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-normal)', fontSize: '0.75rem', fontWeight: 600 }}>
-                  <CheckCircle size={14} /> Ready
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
-                <span style={{ fontSize: '0.875rem' }}>Screen Share Capability</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-normal)', fontSize: '0.75rem', fontWeight: 600 }}>
-                  <CheckCircle size={14} /> Supported
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={handleJoin}
-              disabled={loading}
-              className="btn btn-primary"
-              style={{ width: '100%' }}
-            >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
-              {loading ? 'Validating Token & Initializing Session...' : 'Grant Consent & Enter Interview'}
-            </button>
-          </>
-        )}
+  if (!token) {
+    return (
+      <div className="card" style={{ maxWidth: '500px', margin: '40px auto', textAlign: 'center', padding: '32px' }}>
+        <AlertTriangle size={36} color="var(--color-high-risk)" style={{ margin: '0 auto 12px' }} />
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Invalid Join Link</h3>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', marginTop: '8px' }}>
+          No interview token provided in URL. Please check your interview invitation email.
+        </p>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="card" style={{ maxWidth: '540px', margin: '40px auto', textAlign: 'center', padding: '32px' }}>
+        <AlertTriangle size={36} color="var(--color-high-risk)" style={{ margin: '0 auto 12px' }} />
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Unable to Join Session</h3>
+        <p style={{ color: 'var(--color-text)', marginTop: '8px', fontSize: '0.875rem' }}>
+          {error.message}
+        </p>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', marginTop: '6px' }}>
+          Code: {error.code}
+        </p>
+        <div style={{ marginTop: '20px' }}>
+          <button onClick={() => setError(null)} className="btn btn-outline">
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '20px 0' }}>
+      <SystemCheck onComplete={handleSystemCheckComplete} />
     </div>
   );
 };
@@ -756,16 +753,50 @@ const CandidateJoinPage: React.FC = () => {
 // Candidate Interview Session Page
 const CandidateInterviewPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
+  const navigate = useNavigate();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   const [session, setSession] = useState<SessionDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [connectionState, setConnectionState] = useState<ConnectionState>('CONNECTING');
+  const [cameraActive, setCameraActive] = useState(false);
+  const [micActive, setMicActive] = useState(false);
+  const [screenActive, setScreenActive] = useState(false);
+
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [showEndModal, setShowEndModal] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+
+  const wsClientRef = useRef<WSClient | null>(null);
+  const orchestratorRef = useRef<DetectorOrchestrator | null>(null);
+
+  // 1. Fetch session details & check token
   useEffect(() => {
-    const fetchSession = async () => {
+    let timerId: any = null;
+
+    const init = async () => {
       if (!sessionId) return;
       try {
         const data = await sessionApi.get(sessionId);
         setSession(data);
+
+        if (data.endedAt) {
+          setIsCompleted(true);
+          setLoading(false);
+          return;
+        }
+
+        // Calculate initial elapsed time
+        const start = new Date(data.startedAt).getTime();
+        const now = Date.now();
+        setElapsedSeconds(Math.max(0, Math.floor((now - start) / 1000)));
+
+        timerId = setInterval(() => {
+          setElapsedSeconds((prev) => prev + 1);
+        }, 1000);
       } catch (err: unknown) {
         const errorObj = err as Error;
         setError(errorObj.message || 'Failed to retrieve session state');
@@ -774,49 +805,367 @@ const CandidateInterviewPage: React.FC = () => {
       }
     };
 
-    fetchSession();
+    init();
+
+    return () => {
+      if (timerId) clearInterval(timerId);
+    };
   }, [sessionId]);
+
+  // 2. Setup Media Stream, Detectors & WebSocket
+  useEffect(() => {
+    if (!sessionId || loading || isCompleted || error) return;
+
+    let isDisposed = false;
+    let localStream: MediaStream | null = null;
+
+    const setupSession = async () => {
+      // A. Video stream attach
+      localStream = mediaManager.getCameraStream();
+
+      if (!localStream && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
+          mediaManager.setCameraStream(localStream);
+        } catch (err) {
+          console.warn('[Session] Unable to acquire local camera stream:', err);
+        }
+      }
+
+      if (videoRef.current && localStream) {
+        videoRef.current.srcObject = localStream;
+        setCameraActive(localStream.getVideoTracks().some((t) => t.readyState === 'live'));
+        setMicActive(localStream.getAudioTracks().some((t) => t.readyState === 'live'));
+      }
+
+      const screenStream = mediaManager.getScreenStream();
+      if (screenStream && screenStream.active) {
+        setScreenActive(true);
+      }
+
+      if (isDisposed) return;
+
+      // B. WebSocket & Event Buffer
+      const token = sessionApi.getCandidateToken() || '';
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${window.location.host}/ws/session/${sessionId}`;
+
+      const wsClient = new WSClient({
+        wsUrl,
+        sessionId,
+        token,
+        onStateChange: (state) => setConnectionState(state),
+        onAck: (seq) => eventBuffer.acknowledge(seq),
+        onConnect: () => eventBuffer.replayUnacknowledged(),
+      });
+
+      const eventBuffer = new EventBuffer(wsClient);
+      wsClientRef.current = wsClient;
+
+      // C. Detection Orchestrator & Detectors
+      const orchestrator = new DetectorOrchestrator({
+        intervalMs: 500, // 2 fps
+        videoElement: videoRef.current,
+        onEvents: (events) => {
+          eventBuffer.enqueue(events);
+        },
+      });
+
+      const tabDetector = new TabDetector();
+      const faceDetector = new FaceDetector();
+
+      orchestrator.registerDetector(tabDetector);
+      orchestrator.registerDetector(faceDetector);
+
+      orchestratorRef.current = orchestrator;
+
+      await orchestrator.initializeAll();
+
+      if (!isDisposed) {
+        orchestrator.start();
+        wsClient.connect();
+      }
+    };
+
+    setupSession();
+
+    return () => {
+      isDisposed = true;
+      if (orchestratorRef.current) {
+        orchestratorRef.current.stop();
+        orchestratorRef.current.dispose();
+        orchestratorRef.current = null;
+      }
+      if (wsClientRef.current) {
+        wsClientRef.current.disconnect();
+        wsClientRef.current = null;
+      }
+    };
+  }, [sessionId, loading, isCompleted, error]);
+
+  // Format timer HH:MM:SS
+  const formatTimer = (seconds: number) => {
+    const hrs = String(Math.floor(seconds / 3600)).padStart(2, '0');
+    const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+    const secs = String(seconds % 60).padStart(2, '0');
+    return `${hrs}:${mins}:${secs}`;
+  };
+
+  // 3. End session action
+  const handleEndSession = async () => {
+    if (!sessionId || isEnding) return;
+    setIsEnding(true);
+
+    try {
+      // 1. Notify server of completion
+      await sessionApi.update(sessionId, {
+        ended: true,
+        endReason: 'completed_by_candidate',
+      });
+
+      // 2. Stop detectors & media
+      if (orchestratorRef.current) {
+        orchestratorRef.current.stop();
+        orchestratorRef.current.dispose();
+        orchestratorRef.current = null;
+      }
+
+      if (wsClientRef.current) {
+        wsClientRef.current.disconnect();
+        wsClientRef.current = null;
+      }
+
+      mediaManager.stopAll();
+      setCameraActive(false);
+      setMicActive(false);
+      setScreenActive(false);
+
+      setShowEndModal(false);
+      setIsCompleted(true);
+    } catch (err) {
+      console.error('[Session] Error concluding interview:', err);
+      // Even if network fails, ensure local media is stopped
+      mediaManager.stopAll();
+      setIsCompleted(true);
+      setShowEndModal(false);
+    } finally {
+      setIsEnding(false);
+    }
+  };
 
   if (loading) {
     return (
-      <div style={{ padding: '60px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-        <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 10px' }} />
-        <p>Connecting to session...</p>
+      <div style={{ padding: '80px 20px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+        <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto 14px', color: 'var(--color-primary)' }} />
+        <p style={{ fontSize: '1rem', fontWeight: 500 }}>Connecting to secure interview room...</p>
       </div>
     );
   }
 
   if (error || !session) {
     return (
-      <div className="card" style={{ maxWidth: '600px', margin: '40px auto', textAlign: 'center', padding: '30px' }}>
-        <AlertTriangle size={32} color="var(--color-high-risk)" style={{ margin: '0 auto 12px' }} />
-        <h3 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Session Unavailable</h3>
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>{error || 'Session not found'}</p>
+      <div className="card" style={{ maxWidth: '600px', margin: '40px auto', textAlign: 'center', padding: '36px' }}>
+        <AlertTriangle size={36} color="var(--color-high-risk)" style={{ margin: '0 auto 12px' }} />
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Session Unavailable</h3>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', marginTop: '8px' }}>
+          {error || 'The requested interview session does not exist or has expired.'}
+        </p>
+        <div style={{ marginTop: '20px' }}>
+          <button onClick={() => navigate('/login')} className="btn btn-outline">
+            Return to Portal
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Interview Completed Summary View
+  if (isCompleted) {
+    return (
+      <div className="card" style={{ maxWidth: '580px', margin: '50px auto', textAlign: 'center', padding: '40px 32px' }}>
+        <div style={{ width: '56px', height: '56px', borderRadius: 'var(--radius-full)', backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-normal)', margin: '0 auto 16px' }}>
+          <CheckCircle2 size={32} />
+        </div>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text)' }}>Interview Completed</h2>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', marginTop: '8px', lineHeight: 1.6 }}>
+          Thank you for completing your interview session for <strong style={{ color: 'var(--color-text)' }}>{session.interviewTitle}</strong>.
+        </p>
+
+        <div style={{ margin: '24px 0', padding: '16px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', textAlign: 'left', fontSize: '0.8125rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: 'var(--color-text-secondary)' }}>Candidate:</span>
+            <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>{session.candidateName}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: 'var(--color-text-secondary)' }}>Total Duration:</span>
+            <span style={{ fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--color-text)' }}>{formatTimer(elapsedSeconds)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: 'var(--color-text-secondary)' }}>Session Verification:</span>
+            <span style={{ color: 'var(--color-normal)', fontWeight: 600 }}>Finalized &amp; Submitted</span>
+          </div>
+        </div>
+
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginBottom: '24px' }}>
+          All recorded telemetry has been submitted for review. You may safely close this browser window.
+        </p>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: '900px', margin: '20px auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-      <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-md)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--color-normal)', display: 'inline-block' }}></span>
-          <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{session.interviewTitle} &bull; Session Active</span>
+    <div style={{ maxWidth: '1000px', margin: '16px auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+      {/* Session Top Bar */}
+      <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="pulse-dot"></div>
+            <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--color-text)' }}>
+              {session.interviewTitle}
+            </span>
+          </div>
+          <span style={{ color: 'var(--color-border)' }}>|</span>
+          <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+            Candidate: <strong style={{ color: 'var(--color-text)' }}>{session.candidateName}</strong>
+          </span>
         </div>
-        <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-          <span>Candidate: {session.candidateName}</span>
-          <span style={{ fontFamily: 'var(--font-mono)' }}>Session ID: {session.id.slice(0, 8)}...</span>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+          {/* Connection badge */}
+          {connectionState === 'CONNECTED' && (
+            <span className="indicator-pill success">
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4ade80' }}></span>
+              Connected
+            </span>
+          )}
+          {connectionState === 'RECONNECTING' && (
+            <span className="indicator-pill warning">
+              <Loader2 size={12} className="animate-spin" /> Reconnecting
+            </span>
+          )}
+          {connectionState === 'DISCONNECTED' && (
+            <span className="indicator-pill danger">
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#f87171' }}></span>
+              Disconnected
+            </span>
+          )}
+
+          {/* End Interview button */}
+          <button
+            onClick={() => setShowEndModal(true)}
+            className="btn btn-outline"
+            style={{ padding: '6px 14px', fontSize: '0.8125rem', color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.4)' }}
+          >
+            <Power size={14} /> End Interview
+          </button>
         </div>
       </div>
 
-      <div className="card" style={{ height: '420px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000000', border: '1px solid var(--color-border)' }}>
-        <Video size={48} color="#64748b" style={{ marginBottom: 'var(--space-md)' }} />
-        <p style={{ color: 'var(--color-text)', fontSize: '1rem', fontWeight: 500 }}>Live Interview Camera Preview</p>
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem', marginTop: '4px' }}>
-          Integrity Score: {session.currentIntegrityScore} / 100 &bull; Risk State: {session.currentRiskState}
-        </p>
-        <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '12px' }}>Session active and synchronized with server</span>
+      {/* Main Video Viewport */}
+      <div className="video-container">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="video-element"
+        />
+
+        {/* Video Overlay Header */}
+        <div className="video-overlay-header">
+          <div className="interactive-pill timer-pill">
+            <Clock size={14} color="#94a3b8" />
+            <span>{formatTimer(elapsedSeconds)}</span>
+          </div>
+
+          <div className="interactive-pill">
+            <ShieldCheck size={14} color="#4ade80" />
+            <span>Integrity Shield Active</span>
+          </div>
+        </div>
+
+        {/* Video Overlay Footer */}
+        <div className="video-overlay-footer">
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <div className="interactive-pill" style={{ padding: '6px 12px' }}>
+              <Camera size={14} color={cameraActive ? '#4ade80' : '#f87171'} />
+              <span>{cameraActive ? 'Camera Live' : 'Camera Off'}</span>
+            </div>
+            <div className="interactive-pill" style={{ padding: '6px 12px' }}>
+              {micActive ? <Mic size={14} color="#4ade80" /> : <MicOff size={14} color="#f87171" />}
+              <span>{micActive ? 'Mic Active' : 'Mic Muted'}</span>
+            </div>
+            {screenActive && (
+              <div className="interactive-pill" style={{ padding: '6px 12px' }}>
+                <Monitor size={14} color="#38bdf8" />
+                <span>Screen Shared</span>
+              </div>
+            )}
+          </div>
+
+          <div className="interactive-pill" style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+            Local Verification 2 FPS
+          </div>
+        </div>
       </div>
+
+      {/* Candidate Notice */}
+      <div style={{ padding: '12px 18px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-secondary)' }}>
+          <Shield size={16} color="var(--color-primary)" />
+          <span>Local session monitoring active. Tab switches and face presence are automatically audited locally.</span>
+        </div>
+        <span style={{ fontSize: '0.75rem', color: '#64748b', fontFamily: 'var(--font-mono)' }}>
+          Session: {session.id.slice(0, 8)}
+        </span>
+      </div>
+
+      {/* Confirmation Modal for Ending Interview */}
+      {showEndModal && (
+        <div className="modal-backdrop">
+          <div className="modal-content">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+              <AlertTriangle size={24} color="var(--color-suspicious)" />
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-text)' }}>
+                Conclude Interview?
+              </h3>
+            </div>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
+              Are you sure you wish to end this interview session? This will finalize your telemetry record and submit all verification data to the hiring team. Your camera and microphone streams will be immediately stopped.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => setShowEndModal(false)}
+                disabled={isEnding}
+                className="btn btn-outline"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleEndSession}
+                disabled={isEnding}
+                className="btn btn-primary"
+                style={{ backgroundColor: 'var(--color-high-risk)' }}
+              >
+                {isEnding ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" /> Concluding...
+                  </>
+                ) : (
+                  <>
+                    <Power size={14} /> Yes, End Session
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

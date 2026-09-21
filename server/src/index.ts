@@ -1,8 +1,10 @@
 import http from 'http';
 import { app, logger } from './app.js';
 import { config } from './config.js';
+import { setupWebSocketServer } from './ws/server.js';
 
 const server = http.createServer(app);
+setupWebSocketServer(server);
 
 server.listen(config.PORT, () => {
   logger.info(
