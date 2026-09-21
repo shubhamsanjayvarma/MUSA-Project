@@ -28,6 +28,8 @@ export class FaceDetector implements Detector {
   private lastMultipleFacesFiredAt = 0;
   private lastOrientationOffFiredAt = 0;
   private orientationOffStartTime: number | null = null;
+  private mouthMovingState = false;
+  private lastFaceHeight: number | null = null;
 
   async initialize(config?: DetectorConfig): Promise<void> {
     if (config) {
@@ -134,8 +136,19 @@ export class FaceDetector implements Detector {
         });
       }
       this.orientationOffStartTime = null;
+      this.mouthMovingState = false;
+      this.lastFaceHeight = null;
     } else {
       // Face is present
+      const primaryBox = detections[0].boundingBox;
+      if (primaryBox && typeof primaryBox.height === 'number') {
+        if (this.lastFaceHeight !== null) {
+          const delta = Math.abs(primaryBox.height - this.lastFaceHeight);
+          this.mouthMovingState = delta > 1.5;
+        }
+        this.lastFaceHeight = primaryBox.height;
+      }
+
       if (this.absentEventFired) {
         const absenceMs = now - this.lastFaceSeenTimestamp;
         this.absentEventFired = false;
@@ -177,7 +190,6 @@ export class FaceDetector implements Detector {
       }
 
       // Check face orientation deviation
-      const primaryBox = detections[0].boundingBox;
       if (primaryBox && input.frame && 'width' in input.frame && 'height' in input.frame) {
         const frameW = (input.frame as HTMLCanvasElement).width || 640;
         const frameH = (input.frame as HTMLCanvasElement).height || 480;
@@ -233,6 +245,14 @@ export class FaceDetector implements Detector {
 
   get isActive(): boolean {
     return this.active;
+  }
+
+  get isMouthMoving(): boolean {
+    return this.mouthMovingState;
+  }
+
+  setMouthMoving(moving: boolean): void {
+    this.mouthMovingState = moving;
   }
 
   /**

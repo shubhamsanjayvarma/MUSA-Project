@@ -10,7 +10,25 @@ import { Detector, DetectorInput } from './detector.js';
 export interface OrchestratorOptions {
   intervalMs?: number; // default: 500ms (2 fps)
   onEvents?: (events: DetectionEvent[]) => void;
+  onEvidence?: (event: DetectionEvent, snapshotDataUrl: string) => void;
   videoElement?: HTMLVideoElement | null;
+}
+
+export function captureEvidenceSnapshot(
+  videoOrCanvas: HTMLVideoElement | HTMLCanvasElement | null
+): string | null {
+  if (!videoOrCanvas || typeof document === 'undefined') return null;
+  try {
+    const targetCanvas = document.createElement('canvas');
+    targetCanvas.width = 320;
+    targetCanvas.height = 240;
+    const ctx = targetCanvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(videoOrCanvas, 0, 0, 320, 240);
+    return targetCanvas.toDataURL('image/jpeg', 0.6);
+  } catch {
+    return null;
+  }
 }
 
 export class DetectorOrchestrator {
@@ -19,6 +37,7 @@ export class DetectorOrchestrator {
   private isRunning = false;
   private readonly intervalMs: number;
   private onEventsCallback?: (events: DetectionEvent[]) => void;
+  private onEvidenceCallback?: (event: DetectionEvent, snapshotDataUrl: string) => void;
   private videoElement: HTMLVideoElement | null = null;
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
@@ -26,6 +45,7 @@ export class DetectorOrchestrator {
   constructor(options?: OrchestratorOptions) {
     this.intervalMs = options?.intervalMs ?? 500;
     this.onEventsCallback = options?.onEvents;
+    this.onEvidenceCallback = options?.onEvidence;
     this.videoElement = options?.videoElement ?? null;
 
     if (typeof document !== 'undefined') {
@@ -101,11 +121,38 @@ export class DetectorOrchestrator {
       }
     }
 
-    if (cycleEvents.length > 0 && this.onEventsCallback) {
-      this.onEventsCallback(cycleEvents);
+    if (cycleEvents.length > 0) {
+      if (this.onEventsCallback) {
+        this.onEventsCallback(cycleEvents);
+      }
+
+      if (this.onEvidenceCallback) {
+        const evidenceEligibleTypes = [
+          'face_absent',
+          'multiple_faces',
+          'face_orientation_off',
+          'av_mismatch',
+        ];
+        for (const ev of cycleEvents) {
+          if (evidenceEligibleTypes.includes(ev.eventType)) {
+            const snapshot = this.captureSnapshot();
+            if (snapshot) {
+              this.onEvidenceCallback(ev, snapshot);
+            }
+          }
+        }
+      }
     }
 
     return cycleEvents;
+  }
+
+  captureSnapshot(): string | null {
+    return captureEvidenceSnapshot(this.canvas || this.videoElement);
+  }
+
+  getDetector<T extends Detector>(id: string): T | undefined {
+    return this.detectors.find((d) => d.id === id) as T | undefined;
   }
 
   start(): void {

@@ -198,6 +198,50 @@ export const interviewApi = {
   },
 };
 
+export interface SessionEvent {
+  id: string;
+  sequenceNumber: number;
+  eventType: string;
+  detectorId: string;
+  clientTimestamp: string;
+  serverTimestamp: string;
+  severity: 'info' | 'low' | 'medium' | 'high' | 'critical';
+  confidence: number;
+  payload: Record<string, unknown>;
+  scoreBefore: number | null;
+  scoreAfter: number | null;
+  hasEvidence: boolean;
+}
+
+export interface RiskSnapshotItem {
+  id: string;
+  timestamp: string;
+  integrityScore: number;
+  riskState: string;
+  explanation: string;
+  contributingEventId?: string;
+}
+
+export interface EvidenceItemData {
+  id: string;
+  sessionId: string;
+  eventId?: string;
+  evidenceType: string;
+  timestamp: string;
+  fileSizeBytes: number;
+  metadata: Record<string, unknown>;
+  downloadUrl: string;
+}
+
+export interface RecruiterReviewData {
+  id: string;
+  sessionId: string;
+  recruiterId: string;
+  decision: 'pass' | 'flag' | 'inconclusive';
+  notes: string | null;
+  reviewedAt: string;
+}
+
 export const sessionApi = {
   get: async (sessionId: string): Promise<SessionDetails> => {
     // Check candidate token first, otherwise fallback to recruiter token
@@ -227,6 +271,31 @@ export const sessionApi = {
       },
       candidateToken || undefined
     );
+  },
+  getEvents: async (sessionId: string, page = 1, pageSize = 50): Promise<SessionEvent[]> => {
+    return request<SessionEvent[]>(`/api/sessions/${sessionId}/events?page=${page}&pageSize=${pageSize}`);
+  },
+  getRiskHistory: async (sessionId: string): Promise<RiskSnapshotItem[]> => {
+    return request<RiskSnapshotItem[]>(`/api/sessions/${sessionId}/risk/history`);
+  },
+  getEvidence: async (sessionId: string): Promise<EvidenceItemData[]> => {
+    return request<EvidenceItemData[]>(`/api/sessions/${sessionId}/evidence`);
+  },
+  submitReview: async (
+    sessionId: string,
+    review: { decision: 'pass' | 'flag' | 'inconclusive'; notes?: string }
+  ): Promise<RecruiterReviewData> => {
+    return request<RecruiterReviewData>(`/api/sessions/${sessionId}/review`, {
+      method: 'POST',
+      body: JSON.stringify(review),
+    });
+  },
+  getReview: async (sessionId: string): Promise<RecruiterReviewData | null> => {
+    try {
+      return await request<RecruiterReviewData>(`/api/sessions/${sessionId}/review`);
+    } catch {
+      return null;
+    }
   },
   getCandidateToken,
   setCandidateToken,

@@ -41,8 +41,12 @@ describe('InterviewShield API Integration Tests', () => {
   });
 
   afterAll(async () => {
-    // Clean up created test data
+    // Clean up created test data in foreign key order
     if (createdSessionId) {
+      await prisma.recruiterReview.deleteMany({ where: { sessionId: createdSessionId } });
+      await prisma.riskSnapshot.deleteMany({ where: { sessionId: createdSessionId } });
+      await prisma.evidenceItem.deleteMany({ where: { sessionId: createdSessionId } });
+      await prisma.detectionEvent.deleteMany({ where: { sessionId: createdSessionId } });
       await prisma.session.deleteMany({ where: { id: createdSessionId } });
     }
     if (createdInterviewId) {
@@ -311,6 +315,135 @@ describe('InterviewShield API Integration Tests', () => {
       expect(res.status).toBe(404);
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('NOT_FOUND');
+    });
+  });
+
+  describe('RECRUITER DATA & REVIEW APIS', () => {
+    beforeAll(async () => {
+      // Seed a sample detection event and risk snapshot for createdSessionId
+      const ev = await prisma.detectionEvent.create({
+        data: {
+          sessionId: createdSessionId,
+          sequenceNumber: 1,
+          eventType: 'tab_hidden',
+          detectorId: 'tab_detector',
+          clientTimestamp: new Date(),
+          serverTimestamp: new Date(),
+          severity: 'high',
+          confidence: 1.0,
+          payload: { reason: 'test' },
+          scoreBefore: 100,
+          scoreAfter: 90,
+        },
+      });
+
+      await prisma.riskSnapshot.create({
+        data: {
+          sessionId: createdSessionId,
+          integrityScore: 90,
+          riskState: 'normal',
+          explanation: 'Candidate switched away from tab',
+          contributingEventId: ev.id,
+        },
+      });
+    });
+
+    it('GET /api/sessions/:id/events should list events for authorized recruiter', async () => {
+      const res = await request(app)
+        .get(`/api/sessions/${createdSessionId}/events`)
+        .set('Authorization', `Bearer ${demoRecruiterToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+      expect(res.body.data[0].eventType).toBe('tab_hidden');
+      expect(res.body.meta.total).toBeGreaterThanOrEqual(1);
+    });
+
+    it('GET /api/sessions/:id/timeline should return timeline intervals and snapshots', async () => {
+      const res = await request(app)
+        .get(`/api/sessions/${createdSessionId}/timeline`)
+        .set('Authorization', `Bearer ${demoRecruiterToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.events).toBeDefined();
+      expect(res.body.data.snapshots).toBeDefined();
+    });
+
+    it('GET /api/sessions/:id/risk should return current risk summary', async () => {
+      const res = await request(app)
+        .get(`/api/sessions/${createdSessionId}/risk`)
+        .set('Authorization', `Bearer ${demoRecruiterToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.integrityScore).toBeDefined();
+      expect(res.body.data.riskState).toBeDefined();
+      expect(res.body.data.eventSummary).toBeDefined();
+    });
+
+    it('GET /api/sessions/:id/risk/history should return risk snapshots history', async () => {
+      const res = await request(app)
+        .get(`/api/sessions/${createdSessionId}/risk/history`)
+        .set('Authorization', `Bearer ${demoRecruiterToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+      expect(res.body.data[0].integrityScore).toBe(90);
+    });
+
+    it('POST /api/sessions/:id/review should record a recruiter human review (FLAG)', async () => {
+      const res = await request(app)
+        .post(`/api/sessions/${createdSessionId}/review`)
+        .set('Authorization', `Bearer ${demoRecruiterToken}`)
+        .send({
+          decision: 'flag',
+          notes: 'Candidate switched tabs during screening test.',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.decision).toBe('flag');
+      expect(res.body.data.notes).toBe('Candidate switched tabs during screening test.');
+      expect(res.body.data.recruiterId).toBe(demoRecruiterId);
+    });
+
+    it('GET /api/sessions/:id/review should retrieve the submitted review', async () => {
+      const res = await request(app)
+        .get(`/api/sessions/${createdSessionId}/review`)
+        .set('Authorization', `Bearer ${demoRecruiterToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.decision).toBe('flag');
+    });
+
+    it('POST /api/sessions/:id/review should reject candidate attempting to submit a review', async () => {
+      const res = await request(app)
+        .post(`/api/sessions/${createdSessionId}/review`)
+        .set('Authorization', `Bearer ${candidateSessionToken}`)
+        .send({
+          decision: 'pass',
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+    });
+
+    it('POST /api/sessions/:id/review should reject invalid review decisions', async () => {
+      const res = await request(app)
+        .post(`/api/sessions/${createdSessionId}/review`)
+        .set('Authorization', `Bearer ${demoRecruiterToken}`)
+        .send({
+          decision: 'invalid_decision',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 });

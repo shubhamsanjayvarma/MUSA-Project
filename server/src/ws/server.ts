@@ -1,6 +1,9 @@
 import { Server as HttpServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { URL } from 'url';
+import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { config } from '../config.js';
 import { prisma } from '../db/client.js';
@@ -83,44 +86,69 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
     const sessionId = ws.sessionId!;
     logger.info({ sessionId, role: ws.role }, 'WebSocket client connected');
 
-    // Confirm session in DB
-    try {
-      const session = await prisma.session.findUnique({
-        where: { id: sessionId },
-      });
+    let sessionVerified = false;
 
-      if (!session) {
-        const errorMsg: WSServerMessage = {
-          type: 'error',
+    ws.on('pong', () => {
+      ws.isAlive = true;
+    });
+
+    ws.on('close', (code, reason) => {
+      logger.info(
+        { sessionId, code, reason: reason.toString() },
+        'WebSocket client disconnected'
+      );
+    });
+
+    ws.on('error', (err) => {
+      logger.error({ sessionId, err }, 'WebSocket client error');
+    });
+
+    // Confirm session in DB
+    const sessionInitPromise = (async () => {
+      try {
+        const session = await prisma.session.findUnique({
+          where: { id: sessionId },
+        });
+
+        if (!session) {
+          const errorMsg: WSServerMessage = {
+            type: 'error',
+            payload: {
+              code: 'SESSION_NOT_FOUND',
+              message: 'Session record does not exist in database',
+            },
+          };
+          ws.send(JSON.stringify(errorMsg));
+          ws.close(4004, 'Session not found');
+          return null;
+        }
+
+        sessionVerified = true;
+
+        // Send session:joined confirmation
+        const welcomeMsg: WSServerMessage = {
+          type: 'session:joined',
           payload: {
-            code: 'SESSION_NOT_FOUND',
-            message: 'Session record does not exist in database',
+            sessionId: session.id,
+            interviewId: session.interviewId,
+            currentScore: session.currentIntegrityScore,
+            currentRiskState: session.currentRiskState as any,
           },
         };
-        ws.send(JSON.stringify(errorMsg));
-        ws.close(4004, 'Session not found');
-        return;
+        ws.send(JSON.stringify(welcomeMsg));
+        return session;
+      } catch (err) {
+        logger.error({ err, sessionId }, 'Error verifying session on WS connection');
+        ws.close(1011, 'Internal server error');
+        return null;
       }
-
-      // Send session:joined confirmation
-      const welcomeMsg: WSServerMessage = {
-        type: 'session:joined',
-        payload: {
-          sessionId: session.id,
-          interviewId: session.interviewId,
-          currentScore: session.currentIntegrityScore,
-          currentRiskState: session.currentRiskState as any,
-        },
-      };
-      ws.send(JSON.stringify(welcomeMsg));
-    } catch (err) {
-      logger.error({ err, sessionId }, 'Error verifying session on WS connection');
-      ws.close(1011, 'Internal server error');
-      return;
-    }
+    })();
 
     // Message handler
     ws.on('message', async (data: Buffer | string) => {
+      await sessionInitPromise;
+      if (!sessionVerified) return;
+
       try {
         const rawText = data.toString();
         const message = JSON.parse(rawText) as WSClientMessage;
@@ -200,6 +228,100 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
             },
           };
           ws.send(JSON.stringify(ackMsg));
+          return;
+        }
+
+        if (message.type === 'evidence:snapshot') {
+          const snapshotMsg = message as any;
+          const seq = snapshotMsg.sequenceNumber ?? 0;
+          const payload = snapshotMsg.payload || {};
+          const imageStr: string = payload.imageDataUrl || payload.imageBase64 || '';
+
+          if (!imageStr) {
+            ws.send(
+              JSON.stringify({
+                type: 'error',
+                payload: { code: 'EMPTY_EVIDENCE', message: 'No image data provided' },
+              })
+            );
+            return;
+          }
+
+          // Strip data:image/...;base64, header if present
+          const base64Data = imageStr.replace(/^data:image\/\w+;base64,/, '');
+          const buffer = Buffer.from(base64Data, 'base64');
+
+          // Strict size limit: 50 KB = 51200 bytes
+          if (buffer.length > 51200) {
+            ws.send(
+              JSON.stringify({
+                type: 'error',
+                payload: { code: 'EVIDENCE_TOO_LARGE', message: 'Evidence item exceeds 50KB limit' },
+              })
+            );
+            return;
+          }
+
+          try {
+            const storageDir = path.resolve(config.EVIDENCE_STORAGE_PATH, sessionId);
+            await fs.promises.mkdir(storageDir, { recursive: true });
+
+            const evidenceId = crypto.randomUUID();
+            const filePath = path.join(storageDir, `${evidenceId}.jpg`);
+            await fs.promises.writeFile(filePath, buffer);
+
+            // Find linked event if eventSequenceNumber is provided
+            let linkedEventId: string | undefined = undefined;
+            if (payload.eventSequenceNumber !== undefined) {
+              const ev = await prisma.detectionEvent.findFirst({
+                where: {
+                  sessionId,
+                  sequenceNumber: Number(payload.eventSequenceNumber),
+                },
+              });
+              if (ev) {
+                linkedEventId = ev.id;
+              }
+            }
+
+            await prisma.evidenceItem.create({
+              data: {
+                id: evidenceId,
+                sessionId,
+                eventId: linkedEventId,
+                evidenceType: 'snapshot',
+                timestamp: new Date(payload.capturedAt || Date.now()),
+                filePath,
+                fileSizeBytes: buffer.length,
+                metadata: {
+                  format: 'jpeg',
+                  resolution: '320x240',
+                  mimeType: 'image/jpeg',
+                  eventSequenceNumber: payload.eventSequenceNumber,
+                },
+                retentionExpiresAt: new Date(Date.now() + config.EVIDENCE_RETENTION_DAYS * 86400000),
+              },
+            });
+
+            // Acknowledge receipt
+            const ackMsg: WSServerMessage = {
+              type: 'ack',
+              sequenceNumber: seq,
+              payload: {
+                sequenceNumber: seq,
+                receivedAt: Date.now(),
+              },
+            };
+            ws.send(JSON.stringify(ackMsg));
+          } catch (err) {
+            logger.error({ err, sessionId, seq }, 'Failed to persist evidence snapshot');
+            ws.send(
+              JSON.stringify({
+                type: 'error',
+                payload: { code: 'EVIDENCE_SAVE_FAILED', message: (err as Error).message },
+              })
+            );
+          }
           return;
         }
       } catch (err) {

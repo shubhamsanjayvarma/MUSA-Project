@@ -20,13 +20,33 @@ import {
   Clock,
   Power,
   ShieldCheck,
+  Eye,
+  FileText,
+  HelpCircle,
 } from 'lucide-react';
-import { authApi, interviewApi, sessionApi, Interview, SessionDetails } from './services/api.js';
+import {
+  authApi,
+  interviewApi,
+  sessionApi,
+  Interview,
+  SessionDetails,
+  SessionEvent,
+  RiskSnapshotItem,
+  EvidenceItemData,
+  RecruiterReviewData,
+} from './services/api.js';
 import { SystemCheck, SystemCheckResult } from './components/SystemCheck.js';
 import { mediaManager } from './services/media-manager.js';
 import { WSClient, ConnectionState } from './services/ws-client.js';
 import { EventBuffer } from './services/event-buffer.js';
-import { DetectorOrchestrator, TabDetector, FaceDetector } from './detectors/index.js';
+import {
+  DetectorOrchestrator,
+  TabDetector,
+  FaceDetector,
+  ScreenShareDetector,
+  AudioDetector,
+  AVCorrelator,
+} from './detectors/index.js';
 
 // Header Component
 const Header: React.FC = () => {
@@ -563,12 +583,60 @@ const SessionDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Recruiter Session Data
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [sessionDetails, setSessionDetails] = useState<SessionDetails | null>(null);
+  const [events, setEvents] = useState<SessionEvent[]>([]);
+  const [snapshots, setSnapshots] = useState<RiskSnapshotItem[]>([]);
+  const [evidenceItems, setEvidenceItems] = useState<EvidenceItemData[]>([]);
+  const [review, setReview] = useState<RecruiterReviewData | null>(null);
+
+  // Review Form State
+  const [reviewDecision, setReviewDecision] = useState<'pass' | 'flag' | 'inconclusive' | null>(null);
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewFeedback, setReviewFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Filtering & Evidence Modal
+  const [severityFilter, setSeverityFilter] = useState<'all' | 'medium' | 'high' | 'critical'>('all');
+  const [activeEvidenceUrl, setActiveEvidenceUrl] = useState<string | null>(null);
+  const [activeEvidenceMeta, setActiveEvidenceMeta] = useState<any>(null);
+
+  const fetchSessionData = async (sessId: string) => {
+    try {
+      const [sess, evts, snaps, evd, rev] = await Promise.all([
+        sessionApi.get(sessId),
+        sessionApi.getEvents(sessId, 1, 100),
+        sessionApi.getRiskHistory(sessId),
+        sessionApi.getEvidence(sessId),
+        sessionApi.getReview(sessId),
+      ]);
+      setSessionDetails(sess);
+      setEvents(evts);
+      setSnapshots(snaps);
+      setEvidenceItems(evd);
+      if (rev) {
+        setReview(rev);
+        setReviewDecision(rev.decision);
+        setReviewNotes(rev.notes || '');
+      }
+    } catch (err) {
+      console.error('Error fetching session sub-resources:', err);
+    }
+  };
+
   useEffect(() => {
     const fetchDetail = async () => {
       if (!interviewId) return;
       try {
         const data = await interviewApi.get(interviewId);
         setInterview(data);
+
+        if (data.sessions && data.sessions.length > 0) {
+          const sid = data.sessions[0].id;
+          setActiveSessionId(sid);
+          await fetchSessionData(sid);
+        }
       } catch (err: unknown) {
         const errorObj = err as Error;
         setError(errorObj.message || 'Failed to load interview details');
@@ -580,11 +648,89 @@ const SessionDetailPage: React.FC = () => {
     fetchDetail();
   }, [interviewId]);
 
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeSessionId || !reviewDecision) return;
+    setIsSubmittingReview(true);
+    setReviewFeedback(null);
+
+    try {
+      const savedReview = await sessionApi.submitReview(activeSessionId, {
+        decision: reviewDecision,
+        notes: reviewNotes,
+      });
+      setReview(savedReview);
+      setReviewFeedback({
+        type: 'success',
+        message: `Review submitted: ${savedReview.decision.toUpperCase()} recorded successfully.`,
+      });
+    } catch (err: unknown) {
+      const errorObj = err as Error;
+      setReviewFeedback({
+        type: 'error',
+        message: errorObj.message || 'Failed to submit review',
+      });
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const formatEventType = (type: string) => {
+    switch (type) {
+      case 'tab_hidden': return 'Tab switch away';
+      case 'tab_visible': return 'Tab returned';
+      case 'face_absent': return 'Candidate face absent';
+      case 'face_returned': return 'Candidate face returned';
+      case 'multiple_faces': return 'Multiple faces detected';
+      case 'face_orientation_off': return 'Face turned away';
+      case 'screen_share_stopped': return 'Screen sharing revoked';
+      case 'screen_share_started': return 'Screen sharing started';
+      case 'av_mismatch': return 'Speech without mouth motion';
+      case 'audio_silence_extended': return 'Extended audio silence';
+      case 'audio_activity_detected': return 'Speech activity detected';
+      default: return type.replace(/_/g, ' ');
+    }
+  };
+
+  const getSeverityBadge = (severity: string) => {
+    switch (severity) {
+      case 'critical':
+        return <span className="badge badge-high-risk" style={{ textTransform: 'uppercase', fontSize: '0.6875rem' }}>Critical</span>;
+      case 'high':
+        return <span className="badge badge-suspicious" style={{ textTransform: 'uppercase', fontSize: '0.6875rem' }}>High</span>;
+      case 'medium':
+        return <span className="badge badge-attention" style={{ textTransform: 'uppercase', fontSize: '0.6875rem' }}>Medium</span>;
+      case 'low':
+        return <span className="badge" style={{ backgroundColor: '#1e293b', color: '#94a3b8', border: '1px solid #334155', textTransform: 'uppercase', fontSize: '0.6875rem' }}>Low</span>;
+      default:
+        return <span className="badge" style={{ backgroundColor: '#0f172a', color: '#64748b', fontSize: '0.6875rem' }}>Info</span>;
+    }
+  };
+
+  const formatScoreDiff = (before: number | null, after: number | null) => {
+    if (before === null || after === null) return '-';
+    const diff = after - before;
+    if (diff === 0) return <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>0</span>;
+    return (
+      <span style={{ color: diff < 0 ? 'var(--color-high-risk)' : 'var(--color-normal)', fontWeight: 600, fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
+        {before} &rarr; {after} ({diff > 0 ? `+${diff}` : diff})
+      </span>
+    );
+  };
+
+  const filteredEvents = events.filter((ev) => {
+    if (severityFilter === 'all') return true;
+    if (severityFilter === 'critical') return ev.severity === 'critical';
+    if (severityFilter === 'high') return ev.severity === 'high' || ev.severity === 'critical';
+    if (severityFilter === 'medium') return ev.severity === 'medium' || ev.severity === 'high' || ev.severity === 'critical';
+    return true;
+  });
+
   if (loading) {
     return (
       <div style={{ padding: '50px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
         <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 10px' }} />
-        <p>Loading session information...</p>
+        <p>Loading session information &amp; timeline...</p>
       </div>
     );
   }
@@ -598,72 +744,395 @@ const SessionDetailPage: React.FC = () => {
     );
   }
 
-  const latestSession = interview.sessions && interview.sessions.length > 0 ? interview.sessions[0] : null;
+  const latestSession = sessionDetails || (interview.sessions && interview.sessions.length > 0 ? interview.sessions[0] : null);
+  const score = sessionDetails
+    ? sessionDetails.currentIntegrityScore
+    : (interview.sessions && interview.sessions.length > 0 ? interview.sessions[0].integrityScore : 100);
+  const riskState = sessionDetails
+    ? sessionDetails.currentRiskState
+    : (interview.sessions && interview.sessions.length > 0 ? interview.sessions[0].riskState : 'normal');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+      {/* Top Breadcrumb & Title */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Link to="/dashboard" style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
             &larr; Back to interviews
           </Link>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>{interview.title}</h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
-            Candidate: {interview.candidateName} ({interview.candidateEmail}) &bull; Status: {interview.status}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>{interview.title}</h1>
+            <span className={`badge badge-${interview.status === 'completed' ? 'normal' : interview.status === 'active' ? 'attention' : 'normal'}`}>
+              {interview.status.toUpperCase()}
+            </span>
+          </div>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', marginTop: '4px' }}>
+            Candidate: <strong style={{ color: 'var(--color-text)' }}>{interview.candidateName}</strong> ({interview.candidateEmail})
           </p>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-lg)' }}>
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Integrity Scorecard</h3>
-          {latestSession ? (
-            <>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-sm)' }}>
-                <span style={{ fontSize: '3rem', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--color-normal)' }}>
-                  {latestSession.integrityScore}
-                </span>
-                <span style={{ color: 'var(--color-text-secondary)' }}>/ 100</span>
+      {/* Main Grid: Left side metrics & human review, Right side timeline */}
+      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 'var(--space-lg)', alignItems: 'start' }}>
+        {/* LEFT COLUMN: Scorecard, Review Form & Risk History */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+          {/* Integrity Scorecard */}
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Integrity Scorecard
+            </h3>
+            {latestSession ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-sm)' }}>
+                  <span style={{ fontSize: '3.25rem', fontWeight: 700, fontFamily: 'var(--font-mono)', color: score >= 80 ? 'var(--color-normal)' : score >= 60 ? 'var(--color-attention)' : score >= 40 ? 'var(--color-suspicious)' : 'var(--color-high-risk)' }}>
+                    {score}
+                  </span>
+                  <span style={{ color: 'var(--color-text-secondary)', fontSize: '1.125rem' }}>/ 100</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span className={`badge badge-${riskState === 'normal' ? 'normal' : riskState === 'attention' ? 'attention' : riskState === 'suspicious' ? 'suspicious' : 'high-risk'}`}>
+                    Risk State: {riskState.toUpperCase()}
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                    Events: {events.length}
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', lineHeight: 1.6, borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
+                  {snapshots.length > 0 ? snapshots[snapshots.length - 1].explanation : 'Session initialized with baseline integrity score.'}
+                </p>
+              </>
+            ) : (
+              <div style={{ padding: '20px 0', color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+                Candidate has not joined this interview session yet.
               </div>
-              <span className="badge badge-normal" style={{ alignSelf: 'flex-start' }}>State: {latestSession.riskState}</span>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                Session started at {new Date(latestSession.startedAt).toLocaleTimeString()}. All behavioral event counts currently recorded: {latestSession.eventCount}.
-              </p>
-            </>
-          ) : (
-            <div style={{ padding: '20px 0', color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
-              Candidate has not connected to this interview yet.
+            )}
+          </div>
+
+          {/* HUMAN RECRUITER REVIEW PANEL */}
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FileText size={16} color="var(--color-primary)" /> Recruiter Review Decision
+              </h3>
+              {review && (
+                <span className="badge badge-normal" style={{ fontSize: '0.6875rem' }}>
+                  Reviewed
+                </span>
+              )}
+            </div>
+
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+              AI telemetry provides advisory signals. Human recruiters make all final candidate decisions.
+            </p>
+
+            {reviewFeedback && (
+              <div
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: reviewFeedback.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                  border: `1px solid ${reviewFeedback.type === 'success' ? 'var(--color-normal)' : 'var(--color-high-risk)'}`,
+                  fontSize: '0.8125rem',
+                  color: reviewFeedback.type === 'success' ? '#86efac' : '#fca5a5',
+                }}
+              >
+                {reviewFeedback.message}
+              </div>
+            )}
+
+            <form onSubmit={handleReviewSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
+                VERDICT
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setReviewDecision('pass')}
+                  style={{
+                    padding: '8px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: `1px solid ${reviewDecision === 'pass' ? 'var(--color-normal)' : 'var(--color-border)'}`,
+                    backgroundColor: reviewDecision === 'pass' ? 'rgba(34, 197, 94, 0.15)' : 'var(--color-bg)',
+                    color: reviewDecision === 'pass' ? 'var(--color-normal)' : 'var(--color-text)',
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <CheckCircle size={14} /> PASS
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReviewDecision('flag')}
+                  style={{
+                    padding: '8px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: `1px solid ${reviewDecision === 'flag' ? 'var(--color-suspicious)' : 'var(--color-border)'}`,
+                    backgroundColor: reviewDecision === 'flag' ? 'rgba(249, 115, 22, 0.15)' : 'var(--color-bg)',
+                    color: reviewDecision === 'flag' ? 'var(--color-suspicious)' : 'var(--color-text)',
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <AlertTriangle size={14} /> FLAG
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReviewDecision('inconclusive')}
+                  style={{
+                    padding: '8px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: `1px solid ${reviewDecision === 'inconclusive' ? '#94a3b8' : 'var(--color-border)'}`,
+                    backgroundColor: reviewDecision === 'inconclusive' ? 'rgba(148, 163, 184, 0.15)' : 'var(--color-bg)',
+                    color: reviewDecision === 'inconclusive' ? '#f8fafc' : 'var(--color-text)',
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <HelpCircle size={14} /> INCONCL.
+                </button>
+              </div>
+
+              <div style={{ marginTop: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
+                  REVIEWER NOTES
+                </label>
+                <textarea
+                  rows={3}
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                  placeholder="Record observations, anomalies inspected, and reasons for this decision..."
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    backgroundColor: 'var(--color-bg)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--color-text)',
+                    fontSize: '0.8125rem',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={!reviewDecision || isSubmittingReview}
+                className="btn btn-primary"
+                style={{ width: '100%', marginTop: '6px', fontSize: '0.8125rem', padding: '8px' }}
+              >
+                {isSubmittingReview ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                {review ? 'Update Decision' : 'Submit Decision'}
+              </button>
+
+              {review && (
+                <p style={{ fontSize: '0.6875rem', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
+                  Last reviewed: {new Date(review.reviewedAt).toLocaleString()}
+                </p>
+              )}
+            </form>
+          </div>
+
+          {/* Risk Progression Ledger */}
+          {snapshots.length > 0 && (
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Risk Transitions
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
+                {snapshots.map((snap) => (
+                  <div key={snap.id} style={{ padding: '8px 10px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', fontSize: '0.75rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: snap.integrityScore >= 80 ? 'var(--color-normal)' : 'var(--color-attention)' }}>
+                        Score: {snap.integrityScore} ({snap.riskState})
+                      </span>
+                      <span style={{ color: '#64748b' }}>
+                        {new Date(snap.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <p style={{ color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>{snap.explanation}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
 
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Activity size={18} color="#3b82f6" /> Session Activity Ledger
-          </h3>
-          {interview.sessions && interview.sessions.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-              {interview.sessions.map((s) => (
-                <div key={s.id} style={{ padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 600, fontSize: '0.8125rem' }}>Session: {s.id}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>
-                      Started: {new Date(s.startedAt).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
-                    Score: {s.integrityScore}/100 &bull; Risk State: {s.riskState} &bull; Events: {s.eventCount}
-                  </p>
-                </div>
+        {/* RIGHT COLUMN: Event Timeline Table with Evidence inspection */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          {/* Header & Filter Controls */}
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Activity size={18} color="var(--color-primary)" />
+              <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Event Timeline &amp; Evidence Ledger</h3>
+              <span className="badge" style={{ backgroundColor: '#334155', color: '#94a3b8', fontSize: '0.6875rem' }}>
+                {events.length} recorded
+              </span>
+            </div>
+
+            {/* Severity Filter Tabs */}
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {(['all', 'medium', 'high', 'critical'] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setSeverityFilter(filter)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    textTransform: 'capitalize',
+                    border: `1px solid ${severityFilter === filter ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                    backgroundColor: severityFilter === filter ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                    color: severityFilter === filter ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                  }}
+                >
+                  {filter}
+                </button>
               ))}
             </div>
+          </div>
+
+          {/* Events Table */}
+          {filteredEvents.length === 0 ? (
+            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+              <ShieldCheck size={36} color="var(--color-normal)" style={{ margin: '0 auto 10px', opacity: 0.8 }} />
+              <p style={{ fontWeight: 500, color: 'var(--color-text)' }}>No detection events match this criteria</p>
+              <p style={{ fontSize: '0.8125rem', marginTop: '4px' }}>
+                {events.length === 0 ? 'Candidate behavior clean with no detected anomalies.' : 'Change the severity filter above to view all events.'}
+              </p>
+            </div>
           ) : (
-            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
-              No recorded sessions yet. Candidate join link is active.
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8125rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', fontSize: '0.6875rem' }}>
+                    <th style={{ padding: '10px 16px' }}>SEQ</th>
+                    <th style={{ padding: '10px 16px' }}>TIME</th>
+                    <th style={{ padding: '10px 16px' }}>EVENT SIGNAL</th>
+                    <th style={{ padding: '10px 16px' }}>SEVERITY</th>
+                    <th style={{ padding: '10px 16px' }}>CONFIDENCE</th>
+                    <th style={{ padding: '10px 16px' }}>SCORE IMPACT</th>
+                    <th style={{ padding: '10px 16px', textAlign: 'right' }}>EVIDENCE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEvents.map((ev) => {
+                    const linkedEvidence = evidenceItems.find(
+                      (item) => item.eventId === ev.id || (item.metadata as any)?.eventSequenceNumber === ev.sequenceNumber
+                    );
+
+                    return (
+                      <tr key={ev.id} style={{ borderBottom: '1px solid rgba(51, 65, 85, 0.5)' }}>
+                        <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-secondary)' }}>
+                          #{ev.sequenceNumber}
+                        </td>
+                        <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                          {new Date(ev.serverTimestamp).toLocaleTimeString()}
+                        </td>
+                        <td style={{ padding: '12px 16px', fontWeight: 500 }}>
+                          <div>{formatEventType(ev.eventType)}</div>
+                          <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>{ev.detectorId}</div>
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          {getSeverityBadge(ev.severity)}
+                        </td>
+                        <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)' }}>
+                          {(ev.confidence * 100).toFixed(0)}%
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          {formatScoreDiff(ev.scoreBefore, ev.scoreAfter)}
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                          {linkedEvidence ? (
+                            <button
+                              onClick={() => {
+                                setActiveEvidenceUrl(linkedEvidence.downloadUrl);
+                                setActiveEvidenceMeta({
+                                  ...linkedEvidence.metadata,
+                                  timestamp: linkedEvidence.timestamp,
+                                  eventType: ev.eventType,
+                                });
+                              }}
+                              className="btn btn-outline"
+                              style={{ padding: '3px 8px', fontSize: '0.6875rem', gap: '4px' }}
+                            >
+                              <Eye size={12} color="var(--color-primary)" /> View Snapshot
+                            </button>
+                          ) : (
+                            <span style={{ color: '#475569', fontSize: '0.75rem' }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
       </div>
+
+      {/* EVIDENCE SNAPSHOT MODAL */}
+      {activeEvidenceUrl && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: 'var(--space-md)',
+          }}
+        >
+          <div className="card" style={{ maxWidth: '480px', width: '100%', padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Eye size={18} color="var(--color-primary)" />
+                <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Verification Snapshot</h3>
+              </div>
+              <button onClick={() => setActiveEvidenceUrl(null)} style={{ color: 'var(--color-text-secondary)', fontSize: '1.25rem' }}>
+                ✕
+              </button>
+            </div>
+
+            <div style={{ borderRadius: 'var(--radius-sm)', overflow: 'hidden', border: '1px solid var(--color-border)', backgroundColor: '#000', display: 'flex', justifyContent: 'center' }}>
+              <img
+                src={activeEvidenceUrl}
+                alt="Verification Evidence Snapshot"
+                style={{ width: '100%', maxHeight: '300px', objectFit: 'contain' }}
+              />
+            </div>
+
+            {activeEvidenceMeta && (
+              <div style={{ marginTop: '12px', padding: '10px', backgroundColor: 'var(--color-bg)', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '4px', color: 'var(--color-text-secondary)' }}>
+                <div>Signal: <strong style={{ color: 'var(--color-text)' }}>{formatEventType(activeEvidenceMeta.eventType || '')}</strong></div>
+                <div>Captured: <span style={{ fontFamily: 'var(--font-mono)' }}>{new Date(activeEvidenceMeta.timestamp).toLocaleString()}</span></div>
+                <div>Format: {activeEvidenceMeta.resolution || '320x240'} JPEG (low-resolution privacy compliant)</div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <button onClick={() => setActiveEvidenceUrl(null)} className="btn btn-outline" style={{ padding: '6px 14px', fontSize: '0.8125rem' }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -868,19 +1337,38 @@ const CandidateInterviewPage: React.FC = () => {
       wsClientRef.current = wsClient;
 
       // C. Detection Orchestrator & Detectors
+      let evidenceSeq = 50000;
       const orchestrator = new DetectorOrchestrator({
         intervalMs: 500, // 2 fps
         videoElement: videoRef.current,
         onEvents: (events) => {
           eventBuffer.enqueue(events);
         },
+        onEvidence: (_ev, snapshotDataUrl) => {
+          if (wsClientRef.current && wsClientRef.current.isConnected) {
+            wsClientRef.current.send({
+              type: 'evidence:snapshot',
+              sequenceNumber: evidenceSeq++,
+              payload: {
+                imageDataUrl: snapshotDataUrl,
+                capturedAt: Date.now(),
+              },
+            } as any);
+          }
+        },
       });
 
       const tabDetector = new TabDetector();
       const faceDetector = new FaceDetector();
+      const screenDetector = new ScreenShareDetector();
+      const audioDetector = new AudioDetector();
+      const avCorrelator = new AVCorrelator(faceDetector, audioDetector);
 
       orchestrator.registerDetector(tabDetector);
       orchestrator.registerDetector(faceDetector);
+      orchestrator.registerDetector(screenDetector);
+      orchestrator.registerDetector(audioDetector);
+      orchestrator.registerDetector(avCorrelator);
 
       orchestratorRef.current = orchestrator;
 

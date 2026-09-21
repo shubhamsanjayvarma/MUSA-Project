@@ -34,7 +34,7 @@ describe('WebSocket Detection Event & Risk Integration Test', () => {
         title: 'WS Test Interview',
         candidateName: 'WS Candidate',
         candidateEmail: 'ws.candidate@example.com',
-        joinToken: 'ws-test-join-token-1234567890abcdef',
+        joinToken: `ws-test-join-token-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
         tokenExpiresAt: new Date(Date.now() + 86400000),
         status: 'active',
       },
@@ -74,9 +74,12 @@ describe('WebSocket Detection Event & Risk Integration Test', () => {
   });
 
   afterAll(async () => {
-    await new Promise<void>((resolve) => {
-      server.close(() => resolve());
-    });
+    if (server) {
+      await new Promise<void>((resolve) => {
+        server.close(() => resolve());
+      });
+    }
+    await prisma.evidenceItem.deleteMany({ where: { sessionId: testSessionId } });
     await prisma.riskSnapshot.deleteMany({ where: { sessionId: testSessionId } });
     await prisma.detectionEvent.deleteMany({ where: { sessionId: testSessionId } });
     await prisma.session.deleteMany({ where: { id: testSessionId } });
@@ -163,5 +166,52 @@ describe('WebSocket Detection Event & Risk Integration Test', () => {
     });
     expect(dbSession?.currentIntegrityScore).toBe(90);
     expect(dbSession?.eventSequenceNumber).toBe(1);
+  });
+
+  it('should accept and store evidence:snapshot linked to sequenceNumber', async () => {
+    const wsUrl = `ws://localhost:${port}/ws/session/${testSessionId}?token=${sessionToken}`;
+    const ws = new WebSocket(wsUrl);
+
+    // 100 bytes sample base64 jpeg
+    const fakeJpegBase64 = Buffer.from('mock-jpeg-image-bytes-sample-for-evidence-test').toString('base64');
+    let ackReceived = false;
+
+    await new Promise<void>((resolve, reject) => {
+      ws.on('open', () => {
+        const evidenceMsg = {
+          type: 'evidence:snapshot',
+          sequenceNumber: 2,
+          timestamp: Date.now(),
+          payload: {
+            eventSequenceNumber: 1,
+            imageDataUrl: `data:image/jpeg;base64,${fakeJpegBase64}`,
+            capturedAt: Date.now(),
+          },
+        };
+        ws.send(JSON.stringify(evidenceMsg));
+      });
+
+      ws.on('message', (data) => {
+        const msg = JSON.parse(data.toString()) as WSServerMessage;
+        if (msg.type === 'ack' && (msg as any).sequenceNumber === 2) {
+          ackReceived = true;
+          resolve();
+        }
+      });
+
+      ws.on('error', (err) => reject(err));
+      setTimeout(() => reject(new Error('Timeout waiting for evidence ack')), 5000);
+    });
+
+    ws.close();
+
+    expect(ackReceived).toBe(true);
+
+    const evidenceItems = await prisma.evidenceItem.findMany({
+      where: { sessionId: testSessionId },
+    });
+    expect(evidenceItems.length).toBe(1);
+    expect(evidenceItems[0].evidenceType).toBe('snapshot');
+    expect(evidenceItems[0].fileSizeBytes).toBeGreaterThan(0);
   });
 });
