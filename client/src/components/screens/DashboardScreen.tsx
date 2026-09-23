@@ -89,7 +89,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
               lineHeight: 1.25,
             }}
           >
-            Good morning, {profile.name.split(' ')[0]} 👋
+            Good morning, {profile.name.split(' ')[0]}
           </h1>
           <p
             style={{
@@ -175,22 +175,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             <tbody>
               {interviews.map((item) => (
                 <tr key={item.id} style={{ height: '68px' }}>
-                  {/* Candidate Name & Avatar Dot */}
+                  {/* Candidate Name */}
                   <td style={{ width: '28%' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span
-                        style={{
-                          width: '10px',
-                          height: '10px',
-                          borderRadius: '50%',
-                          backgroundColor: item.avatarColor || '#3b82f6',
-                          flexShrink: 0,
-                        }}
-                      />
-                      <span style={{ fontWeight: 600, color: 'var(--is-text-primary)' }}>
-                        {item.candidateName}
-                      </span>
-                    </div>
+                    <span style={{ fontWeight: 600, color: 'var(--is-text-primary)' }}>
+                      {item.candidateName}
+                    </span>
                   </td>
 
                   {/* Role */}

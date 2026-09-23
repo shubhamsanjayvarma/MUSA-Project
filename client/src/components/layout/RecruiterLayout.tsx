@@ -9,7 +9,7 @@ import {
   Settings,
   Search,
   Bell,
-  Sparkles,
+  ArrowUpRight,
   Activity,
 } from 'lucide-react';
 import '../../styles/interview-shield.css';
@@ -148,7 +148,7 @@ export const RecruiterLayout: React.FC<RecruiterLayoutProps> = ({
                 color: '#475569',
               }}
             >
-              <Sparkles size={14} color="#f59e0b" />
+              <ArrowUpRight size={14} color="#475569" />
               <span>Upgrade</span>
             </Link>
 

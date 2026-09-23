@@ -369,21 +369,6 @@
   font-weight: 500;
 }
 
-.ishield-live-dot {
-  width: 9px;
-  height: 9px;
-  background: #22c55e;
-  border-radius: 50%;
-  display: inline-block;
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
-  animation: pulse-live 2s infinite ease-in-out;
-}
-
-@keyframes pulse-live {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.15); }
-}
-
 .ishield-video-header-right {
   display: flex;
   align-items: center;

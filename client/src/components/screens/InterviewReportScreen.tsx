@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Sparkles, ArrowLeft, Calendar, Clock } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, Calendar, Clock } from 'lucide-react';
 import { appStore, StoredInterview } from '../../services/store.js';
 import {
   RadialScoreGauge,
@@ -384,7 +384,7 @@ export const InterviewReportScreen: React.FC = () => {
                 border: '1px solid var(--is-primary-border)',
               }}
             >
-              <Sparkles size={22} color="var(--is-primary)" style={{ marginTop: '2px', flexShrink: 0 }} />
+              <ShieldCheck size={22} color="var(--is-primary)" style={{ marginTop: '2px', flexShrink: 0 }} />
               <div>
                 <div style={{ fontWeight: 700, color: 'var(--is-primary)', fontSize: '1rem' }}>
                   Multi-Signal Telemetry Analysis

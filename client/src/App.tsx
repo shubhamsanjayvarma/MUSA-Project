@@ -21,6 +21,7 @@ import {
   Power,
   ShieldCheck,
   Eye,
+  X,
 } from 'lucide-react';
 import {
   authApi,
@@ -272,7 +273,9 @@ const LegacyCreateInterviewModal: React.FC<{
       <div className="card" style={{ width: '100%', maxWidth: '520px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Create New Interview</h3>
-          <button onClick={onClose} style={{ color: 'var(--color-text-secondary)', fontSize: '1.25rem' }}>✕</button>
+          <button onClick={onClose} style={{ color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center' }} aria-label="Close modal">
+            <X size={18} />
+          </button>
         </div>
 
         {createdInterview ? (
@@ -960,8 +963,8 @@ const SessionDetailPage: React.FC = () => {
                 <Eye size={18} color="var(--color-primary)" />
                 <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Verification Snapshot</h3>
               </div>
-              <button onClick={() => setActiveEvidenceUrl(null)} style={{ color: 'var(--color-text-secondary)', fontSize: '1.25rem' }}>
-                ✕
+              <button onClick={() => setActiveEvidenceUrl(null)} style={{ color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center' }} aria-label="Close evidence">
+                <X size={18} />
               </button>
             </div>
 
@@ -1367,12 +1370,9 @@ const CandidateInterviewPage: React.FC = () => {
       {/* Session Top Bar */}
       <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="pulse-dot"></div>
-            <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--color-text)' }}>
-              {session.interviewTitle}
-            </span>
-          </div>
+          <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--color-text)' }}>
+            {session.interviewTitle}
+          </span>
           <span style={{ color: 'var(--color-border)' }}>|</span>
           <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
             Candidate: <strong style={{ color: 'var(--color-text)' }}>{session.candidateName}</strong>

@@ -332,26 +332,6 @@ button {
   font-weight: 600;
 }
 
-.pulse-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--color-normal);
-  box-shadow: 0 0 8px var(--color-normal);
-  animation: pulse-ring 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
-}
-
-@keyframes pulse-ring {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.4;
-    transform: scale(1.15);
-  }
-}
-
 .modal-backdrop {
   position: fixed;
   inset: 0;

@@ -18,7 +18,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Eye,
-  Sparkles,
+  UserCheck,
   MoreHorizontal,
   AppWindow,
   FileText,
@@ -279,7 +279,6 @@ export const HomePage: React.FC = () => {
                 {/* Video Header */}
                 <div className="ishield-video-header">
                   <div className="ishield-video-title-wrap">
-                    <span className="ishield-live-dot" />
                     <span>Interview with Aarav Mehta</span>
                   </div>
                   <div className="ishield-video-header-right">
@@ -438,15 +437,15 @@ export const HomePage: React.FC = () => {
                   {activeTab === 'events' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.75rem', marginBottom: '16px' }}>
                       <div className="ishield-section-label">Live Event Feed</div>
-                      <div style={{ padding: '6px 10px', background: '#f8fafc', borderRadius: '6px', borderLeft: '3px solid #22c55e' }}>
+                      <div style={{ padding: '6px 10px', background: '#ffffff', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                         <div style={{ fontWeight: 600, color: '#0f172a' }}>24:10 Face presence steady</div>
                         <div style={{ color: '#64748b', fontSize: '0.6875rem' }}>MediaPipe tracking single face</div>
                       </div>
-                      <div style={{ padding: '6px 10px', background: '#f8fafc', borderRadius: '6px', borderLeft: '3px solid #3b82f6' }}>
+                      <div style={{ padding: '6px 10px', background: '#ffffff', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                         <div style={{ fontWeight: 600, color: '#0f172a' }}>18:45 Screen stream verified</div>
                         <div style={{ color: '#64748b', fontSize: '0.6875rem' }}>Full display sharing active</div>
                       </div>
-                      <div style={{ padding: '6px 10px', background: '#f8fafc', borderRadius: '6px', borderLeft: '3px solid #22c55e' }}>
+                      <div style={{ padding: '6px 10px', background: '#ffffff', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                         <div style={{ fontWeight: 600, color: '#0f172a' }}>08:12 Audio correlation normal</div>
                         <div style={{ color: '#64748b', fontSize: '0.6875rem' }}>Candidate speech matched</div>
                       </div>
@@ -660,7 +659,7 @@ export const HomePage: React.FC = () => {
 
           <div className="ishield-feature-card">
             <div className="ishield-feat-icon">
-              <Sparkles size={22} />
+              <UserCheck size={22} />
             </div>
             <h3 className="ishield-feat-title">Human-in-the-Loop Review</h3>
             <p className="ishield-feat-desc">
