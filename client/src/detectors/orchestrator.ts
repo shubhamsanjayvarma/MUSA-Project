@@ -16,18 +16,23 @@ export interface OrchestratorOptions {
   videoElement?: HTMLVideoElement | null;
 }
 
+let cachedSnapshotCanvas: HTMLCanvasElement | null = null;
+let cachedSnapshotCtx: CanvasRenderingContext2D | null = null;
+
 export function captureEvidenceSnapshot(
   videoOrCanvas: HTMLVideoElement | HTMLCanvasElement | null
 ): string | null {
   if (!videoOrCanvas || typeof document === 'undefined') return null;
   try {
-    const targetCanvas = document.createElement('canvas');
-    targetCanvas.width = 320;
-    targetCanvas.height = 240;
-    const ctx = targetCanvas.getContext('2d');
-    if (!ctx) return null;
-    ctx.drawImage(videoOrCanvas, 0, 0, 320, 240);
-    return targetCanvas.toDataURL('image/jpeg', 0.6);
+    if (!cachedSnapshotCanvas) {
+      cachedSnapshotCanvas = document.createElement('canvas');
+      cachedSnapshotCanvas.width = 320;
+      cachedSnapshotCanvas.height = 240;
+      cachedSnapshotCtx = cachedSnapshotCanvas.getContext('2d', { willReadFrequently: true });
+    }
+    if (!cachedSnapshotCtx) return null;
+    cachedSnapshotCtx.drawImage(videoOrCanvas, 0, 0, 320, 240);
+    return cachedSnapshotCanvas.toDataURL('image/jpeg', 0.6);
   } catch {
     return null;
   }
@@ -37,6 +42,8 @@ export class DetectorOrchestrator {
   private detectors: Detector[] = [];
   private intervalId: any = null;
   private isRunning = false;
+  private isProcessing = false;
+  private lastSnapshotTimes: Map<string, number> = new Map();
   private readonly intervalMs: number;
   private onEventsCallback?: (events: DetectionEvent[]) => void;
   private onEvidenceCallback?: (event: DetectionEvent, snapshotDataUrl: string) => void;
@@ -102,63 +109,75 @@ export class DetectorOrchestrator {
   }
 
   async runCycle(): Promise<DetectionEvent[]> {
-    const cycleEvents: DetectionEvent[] = [];
-    const timestamp = Date.now();
-    const frame = this.captureFrame();
+    if (this.isProcessing) return [];
+    this.isProcessing = true;
 
-    const input: DetectorInput = {
-      frame,
-      videoElement: this.videoElement,
-      timestamp,
-    };
+    try {
+      const cycleEvents: DetectionEvent[] = [];
+      const timestamp = Date.now();
+      const frame = this.captureFrame();
 
-    for (const detector of this.detectors) {
-      if (!detector.isActive) {
-        this.healthState.set(detector.id, 'DISABLED');
-        continue;
-      }
-      try {
-        const events = await Promise.resolve(detector.detect(input));
-        if (events && events.length > 0) {
-          cycleEvents.push(...events);
+      const input: DetectorInput = {
+        frame,
+        videoElement: this.videoElement,
+        timestamp,
+      };
+
+      for (const detector of this.detectors) {
+        if (!detector.isActive) {
+          this.healthState.set(detector.id, 'DISABLED');
+          continue;
         }
-        if (this.healthState.get(detector.id) === 'FAILED') {
-          this.healthState.set(detector.id, 'DEGRADED');
-        } else {
-          this.healthState.set(detector.id, 'ACTIVE');
+        try {
+          const events = await Promise.resolve(detector.detect(input));
+          if (events && events.length > 0) {
+            cycleEvents.push(...events);
+          }
+          if (this.healthState.get(detector.id) === 'FAILED') {
+            this.healthState.set(detector.id, 'DEGRADED');
+          } else {
+            this.healthState.set(detector.id, 'ACTIVE');
+          }
+        } catch (err) {
+          this.healthState.set(detector.id, 'FAILED');
+          console.error(`[Orchestrator] Detector ${detector.id} threw error in detect cycle:`, err);
         }
-      } catch (err) {
-        this.healthState.set(detector.id, 'FAILED');
-        console.error(`[Orchestrator] Detector ${detector.id} threw error in detect cycle:`, err);
-      }
-    }
-
-    if (cycleEvents.length > 0) {
-      if (this.onEventsCallback) {
-        this.onEventsCallback(cycleEvents);
       }
 
-      if (this.onEvidenceCallback) {
-        const evidenceEligibleTypes = [
-          'face_absent',
-          'multiple_faces',
-          'face_orientation_off',
-          'av_mismatch',
-          'face_swap_detected',
-          'unusual_gaze_direction',
-        ];
-        for (const ev of cycleEvents) {
-          if (evidenceEligibleTypes.includes(ev.eventType)) {
-            const snapshot = this.captureSnapshot();
-            if (snapshot) {
-              this.onEvidenceCallback(ev, snapshot);
+      if (cycleEvents.length > 0) {
+        if (this.onEventsCallback) {
+          this.onEventsCallback(cycleEvents);
+        }
+
+        if (this.onEvidenceCallback) {
+          const evidenceEligibleTypes = [
+            'face_absent',
+            'multiple_faces',
+            'face_orientation_off',
+            'av_mismatch',
+            'face_swap_detected',
+            'unusual_gaze_direction',
+          ];
+          for (const ev of cycleEvents) {
+            if (evidenceEligibleTypes.includes(ev.eventType)) {
+              // Enforce 5,000ms cooldown per anomaly type to prevent snapshot flooding
+              const lastCaptured = this.lastSnapshotTimes.get(ev.eventType) || 0;
+              if (timestamp - lastCaptured >= 5000) {
+                this.lastSnapshotTimes.set(ev.eventType, timestamp);
+                const snapshot = this.captureSnapshot();
+                if (snapshot) {
+                  this.onEvidenceCallback(ev, snapshot);
+                }
+              }
             }
           }
         }
       }
-    }
 
-    return cycleEvents;
+      return cycleEvents;
+    } finally {
+      this.isProcessing = false;
+    }
   }
 
   captureSnapshot(): string | null {

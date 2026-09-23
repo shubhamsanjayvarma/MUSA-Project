@@ -52,7 +52,6 @@ export const NeutralStatusPill: React.FC<NeutralStatusPillProps> = ({
       case 'proctoring-active':
         return (
           <span className="cand-pill cand-pill-active" title="Proctoring active with local device telemetry">
-            <span className="cand-pulse-dot" aria-hidden="true" />
             <ShieldCheck size={iconSize} />
             <span>{label || 'Proctoring Active'}</span>
           </span>

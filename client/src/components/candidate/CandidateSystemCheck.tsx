@@ -539,7 +539,6 @@ export const CandidateSystemCheck: React.FC<CandidateSystemCheckProps> = ({
                 color: '#ffffff',
               }}
             >
-              <span className="cand-pulse-dot" />
               <span>Camera Stream Ready</span>
             </div>
 

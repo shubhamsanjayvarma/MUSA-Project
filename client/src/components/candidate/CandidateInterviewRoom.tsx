@@ -353,7 +353,6 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
         {/* Left: Meeting Identity & Neutral Status Indicators (NO SCORES) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="cand-pulse-dot" />
             <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--cand-text-primary)' }}>
               Interview with Rahul Sharma
             </span>
