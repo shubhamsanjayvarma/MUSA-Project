@@ -27,34 +27,38 @@ export function getRiskTheme(riskState: RiskState) {
     case 'normal':
       return {
         label: 'NORMAL',
-        color: 'var(--risk-normal-fg, #34d399)',
-        bg: 'var(--risk-normal-bg, rgba(16, 185, 129, 0.12))',
-        border: 'var(--risk-normal-border, rgba(16, 185, 129, 0.3))',
-        glow: 'rgba(52, 211, 153, 0.25)',
+        color: '#10b981',
+        textColor: '#15803d',
+        bg: '#f0fdf4',
+        border: '#bbf7d0',
+        glow: 'rgba(16, 185, 129, 0.15)',
       };
     case 'attention':
       return {
         label: 'ATTENTION',
-        color: 'var(--risk-attention-fg, #fbbf24)',
-        bg: 'var(--risk-attention-bg, rgba(245, 158, 11, 0.12))',
-        border: 'var(--risk-attention-border, rgba(245, 158, 11, 0.3))',
-        glow: 'rgba(251, 191, 36, 0.25)',
+        color: '#f59e0b',
+        textColor: '#b45309',
+        bg: '#fffbeb',
+        border: '#fde68a',
+        glow: 'rgba(245, 158, 11, 0.15)',
       };
     case 'suspicious':
       return {
         label: 'SUSPICIOUS',
-        color: 'var(--risk-suspicious-fg, #fb923c)',
-        bg: 'var(--risk-suspicious-bg, rgba(249, 115, 22, 0.12))',
-        border: 'var(--risk-suspicious-border, rgba(249, 115, 22, 0.3))',
-        glow: 'rgba(251, 146, 60, 0.25)',
+        color: '#f97316',
+        textColor: '#c2410c',
+        bg: '#fff7ed',
+        border: '#ffedd5',
+        glow: 'rgba(249, 115, 22, 0.15)',
       };
     case 'high_risk':
       return {
         label: 'HIGH_RISK',
-        color: 'var(--risk-high-risk-fg, #fb7185)',
-        bg: 'var(--risk-high-risk-bg, rgba(244, 63, 94, 0.12))',
-        border: 'var(--risk-high-risk-border, rgba(244, 63, 94, 0.3))',
-        glow: 'rgba(251, 113, 133, 0.25)',
+        color: '#ef4444',
+        textColor: '#b91c1c',
+        bg: '#fef2f2',
+        border: '#fecaca',
+        glow: 'rgba(239, 68, 68, 0.15)',
       };
   }
 }
@@ -245,11 +249,11 @@ export const RadialScoreGauge: React.FC<RadialScoreGaugeProps> = ({
         }}
       >
         <span
-          className="recruiter-text-11 recruiter-mono"
           style={{
+            fontSize: '0.6875rem',
             textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            color: 'var(--recruiter-text-secondary, #94a3b8)',
+            letterSpacing: '0.05em',
+            color: '#64748b',
             fontWeight: 600,
           }}
         >
@@ -259,14 +263,15 @@ export const RadialScoreGauge: React.FC<RadialScoreGaugeProps> = ({
         {/* Delta Pill */}
         {delta !== null && delta !== 0 && (
           <span
-            className="tnum recruiter-mono recruiter-text-11"
+            className="tnum"
             style={{
+              fontSize: '0.6875rem',
               padding: '1px 6px',
               borderRadius: '9999px',
               fontWeight: 600,
-              backgroundColor: delta < 0 ? 'rgba(244, 63, 94, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-              color: delta < 0 ? 'var(--risk-high-risk-fg, #fb7185)' : 'var(--risk-normal-fg, #34d399)',
-              border: `1px solid ${delta < 0 ? 'rgba(244, 63, 94, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+              backgroundColor: delta < 0 ? '#fef2f2' : '#f0fdf4',
+              color: delta < 0 ? '#b91c1c' : '#15803d',
+              border: `1px solid ${delta < 0 ? '#fecaca' : '#bbf7d0'}`,
             }}
           >
             {delta > 0 ? `+${delta}` : delta} pts
@@ -291,19 +296,13 @@ export const RadialScoreGauge: React.FC<RadialScoreGaugeProps> = ({
           viewBox={`0 0 ${config.width} ${config.height}`}
           style={{ overflow: 'visible' }}
         >
-          <defs>
-            <filter id="gauge-glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor={theme.glow} />
-            </filter>
-          </defs>
-
           {/* Background Track Arc */}
           <circle
             cx={cx}
             cy={cy}
             r={r}
             fill="none"
-            stroke="rgba(255, 255, 255, 0.08)"
+            stroke="#e2e8f0"
             strokeWidth={config.strokeWidth}
             strokeDasharray={`${arcLength} ${fullCircumference}`}
             strokeLinecap="round"
@@ -322,13 +321,12 @@ export const RadialScoreGauge: React.FC<RadialScoreGaugeProps> = ({
             strokeDashoffset={strokeOffset}
             strokeLinecap="round"
             transform={`rotate(${config.startAngle} ${cx} ${cy})`}
-            filter="url(#gauge-glow)"
             className="recruiter-gauge-arc"
           />
 
           {/* Visual Boundary Ticks (0%, 40%, 60%, 80%, 100%) */}
           {showTicks && size === 'standard' && (
-            <g opacity="0.4">
+            <g opacity="0.8">
               {[0, 0.4, 0.6, 0.8, 1].map((pct, idx) => {
                 const angleDeg = (config.startAngle || 150) + pct * (config.arcSweepAngle || 240);
                 const angleRad = (angleDeg * Math.PI) / 180;
@@ -345,7 +343,7 @@ export const RadialScoreGauge: React.FC<RadialScoreGaugeProps> = ({
                     y1={y1}
                     x2={x2}
                     y2={y2}
-                    stroke="#94a3b8"
+                    stroke="#cbd5e1"
                     strokeWidth="1.5"
                     strokeLinecap="round"
                   />
@@ -355,11 +353,11 @@ export const RadialScoreGauge: React.FC<RadialScoreGaugeProps> = ({
           )}
         </svg>
 
-        {/* Center Display: 48px Tabular Digits */}
+        {/* Center Display: Tabular Digits Exactly Centered in Arc Cavity */}
         <div
           style={{
             position: 'absolute',
-            top: '44%',
+            top: size === 'standard' ? '58%' : '56%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
             display: 'flex',
@@ -368,33 +366,31 @@ export const RadialScoreGauge: React.FC<RadialScoreGaugeProps> = ({
             justifyContent: 'center',
             textAlign: 'center',
             pointerEvents: 'none',
+            lineHeight: 1,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
-            <span
-              className="tnum recruiter-mono"
-              style={{
-                fontSize: config.fontSize,
-                lineHeight: size === 'standard' ? '52px' : '36px',
-                letterSpacing: '-0.04em',
-                fontWeight: 700,
-                color: theme.color,
-                transition: 'color 400ms ease',
-              }}
-            >
-              {displayScore}
-            </span>
-            <span
-              className="recruiter-mono"
-              style={{
-                fontSize: size === 'standard' ? '0.8125rem' : '0.6875rem',
-                color: 'var(--recruiter-text-muted, #64748b)',
-                fontWeight: 500,
-              }}
-            >
-              /100
-            </span>
-          </div>
+          <span
+            className="tnum"
+            style={{
+              fontSize: size === 'standard' ? '42px' : '26px',
+              fontWeight: 700,
+              color: '#0f172a',
+              letterSpacing: '-0.03em',
+              lineHeight: 1,
+            }}
+          >
+            {displayScore}
+          </span>
+          <span
+            style={{
+              fontSize: '0.6875rem',
+              color: '#64748b',
+              fontWeight: 500,
+              marginTop: '4px',
+            }}
+          >
+            / 100
+          </span>
         </div>
       </div>
 
@@ -405,15 +401,14 @@ export const RadialScoreGauge: React.FC<RadialScoreGaugeProps> = ({
             width: '100%',
             display: 'flex',
             justifyContent: 'center',
-            marginTop: '-6px',
+            marginTop: '-4px',
           }}
         >
           <div
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '3px 10px',
+              padding: '2px 10px',
               borderRadius: '9999px',
               backgroundColor: theme.bg,
               border: `1px solid ${theme.border}`,
@@ -422,19 +417,10 @@ export const RadialScoreGauge: React.FC<RadialScoreGaugeProps> = ({
           >
             <span
               style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                backgroundColor: theme.color,
-                boxShadow: `0 0 6px ${theme.color}`,
-              }}
-            />
-            <span
-              className="recruiter-mono recruiter-text-11"
-              style={{
-                color: theme.color,
-                fontWeight: 700,
-                letterSpacing: '0.06em',
+                color: theme.textColor,
+                fontWeight: 600,
+                fontSize: '0.6875rem',
+                letterSpacing: '0.04em',
                 textTransform: 'uppercase',
               }}
             >
@@ -448,7 +434,7 @@ export const RadialScoreGauge: React.FC<RadialScoreGaugeProps> = ({
         <span
           className="recruiter-text-11"
           style={{
-            color: 'var(--recruiter-text-secondary, #94a3b8)',
+            color: 'var(--recruiter-text-muted, #64748b)',
             textAlign: 'center',
             marginTop: '4px',
           }}

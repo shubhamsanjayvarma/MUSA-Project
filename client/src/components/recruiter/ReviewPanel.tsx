@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  CheckCircle,
-  AlertTriangle,
-  HelpCircle,
   FileText,
   Loader2,
   Check,
@@ -124,7 +121,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
-        backgroundColor: 'var(--recruiter-surface, #0f172a)',
+        backgroundColor: '#ffffff',
         ...style,
       }}
       role="region"
@@ -136,15 +133,15 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderBottom: '1px solid var(--recruiter-border-subtle, #1e293b)',
+          borderBottom: '1px solid #e2e8f0',
           paddingBottom: '12px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FileText size={18} color="#3b82f6" />
+          <FileText size={18} color="#2563eb" />
           <span
-            className="recruiter-mono recruiter-text-13"
-            style={{ fontWeight: 600, color: 'var(--recruiter-text-primary, #f8fafc)' }}
+            className="recruiter-text-13"
+            style={{ fontWeight: 600, color: 'var(--recruiter-text-primary, #0f172a)' }}
           >
             Human Proctor Review Workflow
           </span>
@@ -152,44 +149,36 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({
 
         {savedReview && (
           <span
-            className="recruiter-mono recruiter-text-11"
             style={{
               padding: '2px 8px',
               borderRadius: '9999px',
               backgroundColor:
                 savedReview.decision === 'pass'
-                  ? 'var(--risk-normal-bg, rgba(16, 185, 129, 0.12))'
+                  ? '#f0fdf4'
                   : savedReview.decision === 'flag'
-                  ? 'var(--risk-suspicious-bg, rgba(249, 115, 22, 0.12))'
-                  : 'rgba(148, 163, 184, 0.12)',
+                  ? '#fffbeb'
+                  : '#f8fafc',
               color:
                 savedReview.decision === 'pass'
-                  ? 'var(--risk-normal-fg, #34d399)'
+                  ? '#15803d'
                   : savedReview.decision === 'flag'
-                  ? 'var(--risk-suspicious-fg, #fb923c)'
-                  : 'var(--recruiter-text-secondary, #94a3b8)',
+                  ? '#b45309'
+                  : '#475569',
               border: `1px solid ${
                 savedReview.decision === 'pass'
-                  ? 'var(--risk-normal-border, rgba(16, 185, 129, 0.3))'
+                  ? '#bbf7d0'
                   : savedReview.decision === 'flag'
-                  ? 'var(--risk-suspicious-border, rgba(249, 115, 22, 0.3))'
-                  : 'rgba(148, 163, 184, 0.25)'
+                  ? '#fde68a'
+                  : '#e2e8f0'
               }`,
-              fontWeight: 700,
+              fontSize: '0.6875rem',
+              fontWeight: 600,
             }}
           >
-            VERIFIED: {savedReview.decision.toUpperCase()}
+            Verified: {savedReview.decision.toUpperCase()}
           </span>
         )}
       </div>
-
-      <p
-        className="recruiter-text-12"
-        style={{ color: 'var(--recruiter-text-secondary, #94a3b8)', lineHeight: 1.5 }}
-      >
-        Automated telemetry serves as non-punitive advisory signals. Human proctors make all final
-        hiring integrity evaluations.
-      </p>
 
       {/* Notification Banner */}
       {statusMessage && (
@@ -198,21 +187,21 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '10px 14px',
+            padding: '8px 12px',
             borderRadius: '6px',
             backgroundColor:
               statusMessage.type === 'success'
-                ? 'var(--risk-normal-bg, rgba(16, 185, 129, 0.12))'
-                : 'var(--risk-high-risk-bg, rgba(244, 63, 94, 0.12))',
+                ? '#f0fdf4'
+                : '#fef2f2',
             border: `1px solid ${
               statusMessage.type === 'success'
-                ? 'var(--risk-normal-border, rgba(16, 185, 129, 0.3))'
-                : 'var(--risk-high-risk-border, rgba(244, 63, 94, 0.3))'
+                ? '#bbf7d0'
+                : '#fecaca'
             }`,
             color:
               statusMessage.type === 'success'
-                ? 'var(--risk-normal-fg, #34d399)'
-                : 'var(--risk-high-risk-fg, #fb7185)',
+                ? '#15803d'
+                : '#b91c1c',
           }}
         >
           {statusMessage.type === 'success' ? (
@@ -220,133 +209,51 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({
           ) : (
             <AlertCircle size={16} />
           )}
-          <span className="recruiter-text-12" style={{ fontWeight: 500 }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>
             {statusMessage.text}
           </span>
         </div>
       )}
 
       {/* Review Form */}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        {/* Button Group per DESIGN.md: Pass (emerald) | Flag (amber) | Inconclusive (slate) */}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {/* Dropdown Menu replacing button grid */}
         <div>
           <label
-            className="recruiter-mono recruiter-text-11"
+            htmlFor="review-decision-select"
             style={{
               display: 'block',
               fontWeight: 600,
-              color: 'var(--recruiter-text-secondary, #94a3b8)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '8px',
+              fontSize: '0.75rem',
+              color: '#475569',
+              marginBottom: '6px',
             }}
           >
             Review Decision
           </label>
 
-          <div
+          <select
+            id="review-decision-select"
+            value={decision || ''}
+            onChange={(e) => setDecision((e.target.value as ReviewDecision) || null)}
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '10px',
+              width: '100%',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#ffffff',
+              fontSize: '0.8125rem',
+              color: '#0f172a',
+              outline: 'none',
+              cursor: 'pointer',
+              boxSizing: 'border-box',
             }}
           >
-            {/* Pass Button */}
-            <button
-              id="pass_btn"
-              type="button"
-              onClick={() => setDecision('pass')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '10px 12px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.8125rem',
-                backgroundColor:
-                  decision === 'pass'
-                    ? 'rgba(16, 185, 129, 0.2)'
-                    : 'var(--recruiter-bg, #090d16)',
-                color: decision === 'pass' ? '#34d399' : 'var(--recruiter-text-secondary, #94a3b8)',
-                border: `1px solid ${
-                  decision === 'pass' ? '#10b981' : 'var(--recruiter-border-subtle, #1e293b)'
-                }`,
-                boxShadow:
-                  decision === 'pass' ? '0 0 12px rgba(16, 185, 129, 0.25)' : 'none',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <CheckCircle size={16} color={decision === 'pass' ? '#34d399' : '#94a3b8'} />
-              <span>Pass Session</span>
-            </button>
-
-            {/* Flag Button */}
-            <button
-              id="flag_btn"
-              type="button"
-              onClick={() => setDecision('flag')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '10px 12px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.8125rem',
-                backgroundColor:
-                  decision === 'flag'
-                    ? 'rgba(245, 158, 11, 0.2)'
-                    : 'var(--recruiter-bg, #090d16)',
-                color: decision === 'flag' ? '#fbbf24' : 'var(--recruiter-text-secondary, #94a3b8)',
-                border: `1px solid ${
-                  decision === 'flag' ? '#f59e0b' : 'var(--recruiter-border-subtle, #1e293b)'
-                }`,
-                boxShadow:
-                  decision === 'flag' ? '0 0 12px rgba(245, 158, 11, 0.25)' : 'none',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <AlertTriangle size={16} color={decision === 'flag' ? '#fbbf24' : '#94a3b8'} />
-              <span>Flag for Scrutiny</span>
-            </button>
-
-            {/* Inconclusive Button */}
-            <button
-              id="inconclusive_btn"
-              type="button"
-              onClick={() => setDecision('inconclusive')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '10px 12px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.8125rem',
-                backgroundColor:
-                  decision === 'inconclusive'
-                    ? 'rgba(148, 163, 184, 0.2)'
-                    : 'var(--recruiter-bg, #090d16)',
-                color: decision === 'inconclusive' ? '#f8fafc' : 'var(--recruiter-text-secondary, #94a3b8)',
-                border: `1px solid ${
-                  decision === 'inconclusive' ? '#94a3b8' : 'var(--recruiter-border-subtle, #1e293b)'
-                }`,
-                boxShadow:
-                  decision === 'inconclusive' ? '0 0 12px rgba(148, 163, 184, 0.2)' : 'none',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <HelpCircle size={16} color={decision === 'inconclusive' ? '#f8fafc' : '#94a3b8'} />
-              <span>Inconclusive</span>
-            </button>
-          </div>
+            <option value="" disabled>Select decision...</option>
+            <option value="pass">Pass Session</option>
+            <option value="flag">Flag for Scrutiny</option>
+            <option value="inconclusive">Inconclusive</option>
+          </select>
         </div>
 
         {/* Proctor Notes Area */}
@@ -360,22 +267,21 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({
             }}
           >
             <label
-              className="recruiter-mono recruiter-text-11"
               style={{
                 fontWeight: 600,
-                color: 'var(--recruiter-text-secondary, #94a3b8)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
+                fontSize: '0.75rem',
+                color: '#475569',
               }}
             >
-              Proctor Notes {isFlag && <span style={{ color: '#fb7185' }}>* (Required for Flag)</span>}
+              Proctor Notes {isFlag && <span style={{ color: '#b91c1c' }}>* (Required for Flag)</span>}
             </label>
 
             {isFlag && (
               <span
-                className="tnum recruiter-mono recruiter-text-11"
+                className="tnum"
                 style={{
-                  color: notesTrimmed.length >= 10 ? '#34d399' : '#fb7185',
+                  fontSize: '0.6875rem',
+                  color: notesTrimmed.length >= 10 ? '#15803d' : '#b91c1c',
                 }}
               >
                 {notesTrimmed.length}/10 min chars
@@ -384,26 +290,26 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({
           </div>
 
           <textarea
-            rows={3}
+            rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder={
               isFlag
-                ? 'Specify the anomalous behaviors, timestamps, or frame snapshots inspected (min 10 characters)...'
-                : 'Optional reviewer notes, observations, or follow-up interview recommendations...'
+                ? 'Specify the anomalous behaviors or timestamps inspected (min 10 characters)...'
+                : 'Optional reviewer notes or follow-up recommendations...'
             }
-            className="recruiter-text-12"
             style={{
               width: '100%',
-              padding: '10px 12px',
-              backgroundColor: 'var(--recruiter-bg, #090d16)',
+              padding: '8px 12px',
+              backgroundColor: '#ffffff',
               border: `1px solid ${
                 isFlag && notesTrimmed.length < 10 && notes.length > 0
-                  ? 'rgba(244, 63, 94, 0.6)'
-                  : 'var(--recruiter-border-subtle, #1e293b)'
+                  ? '#ef4444'
+                  : '#e2e8f0'
               }`,
               borderRadius: '6px',
-              color: 'var(--recruiter-text-primary, #f8fafc)',
+              fontSize: '0.75rem',
+              color: '#0f172a',
               resize: 'vertical',
               boxSizing: 'border-box',
               outline: 'none',
@@ -416,8 +322,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px' }}>
           {savedReview && (
             <span
-              className="recruiter-mono recruiter-text-11"
-              style={{ color: 'var(--recruiter-text-muted, #64748b)' }}
+              style={{ fontSize: '0.6875rem', color: '#64748b' }}
             >
               Last reviewed:{' '}
               {new Date(savedReview.reviewedAt).toLocaleTimeString([], {
@@ -430,25 +335,25 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({
           <button
             type="submit"
             disabled={!isFormValid || isSubmitting}
-            className="recruiter-mono recruiter-text-12"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '9px 18px',
+              padding: '8px 16px',
               borderRadius: '6px',
-              backgroundColor: isFormValid && !isSubmitting ? '#2563eb' : '#1e293b',
-              color: isFormValid && !isSubmitting ? '#ffffff' : '#64748b',
-              border: 'none',
+              backgroundColor: isFormValid && !isSubmitting ? '#0f172a' : '#f1f5f9',
+              color: isFormValid && !isSubmitting ? '#ffffff' : '#94a3b8',
+              border: isFormValid && !isSubmitting ? '1px solid #0f172a' : '1px solid #e2e8f0',
               cursor: isFormValid && !isSubmitting ? 'pointer' : 'not-allowed',
               fontWeight: 600,
-              transition: 'background-color 0.2s ease',
+              fontSize: '0.75rem',
+              transition: 'background-color 0.15s ease',
             }}
           >
             {isSubmitting ? (
               <>
                 <Loader2 size={14} className="animate-spin" />
-                <span>Recording Verdict...</span>
+                <span>Recording...</span>
               </>
             ) : (
               <>

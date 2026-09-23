@@ -40,7 +40,11 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        backgroundColor: 'var(--recruiter-surface, #0f172a)',
+        backgroundColor: '#ffffff',
+        border: '1px solid #e2e8f0',
+        boxShadow: isModal
+          ? '0 20px 25px -5px rgba(16, 24, 40, 0.1), 0 10px 10px -5px rgba(16, 24, 40, 0.04)'
+          : '0 1px 3px 0 rgba(16, 24, 40, 0.06)',
       }}
     >
       {/* Top Header Bar */}
@@ -50,7 +54,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '10px 14px',
-          borderBottom: '1px solid var(--recruiter-border-subtle, #1e293b)',
+          borderBottom: '1px solid #e2e8f0',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -59,12 +63,12 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: '#3b82f6',
+              backgroundColor: '#2563eb',
             }}
           />
           <span
             className="recruiter-mono recruiter-text-12"
-            style={{ fontWeight: 600, color: 'var(--recruiter-text-primary, #f8fafc)' }}
+            style={{ fontWeight: 600, color: 'var(--recruiter-text-primary, #0f172a)' }}
           >
             {eventType}
           </span>
@@ -89,12 +93,13 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({
               alignItems: 'center',
               gap: '4px',
               padding: '3px 8px',
-              borderRadius: '4px',
-              backgroundColor: isBlurred ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.06)',
-              color: isBlurred ? '#60a5fa' : '#94a3b8',
-              border: `1px solid ${isBlurred ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+              borderRadius: '6px',
+              backgroundColor: isBlurred ? '#eff6ff' : '#f8fafc',
+              color: isBlurred ? '#2563eb' : '#475569',
+              border: `1px solid ${isBlurred ? '#bfdbfe' : '#e2e8f0'}`,
               cursor: 'pointer',
               fontSize: '0.6875rem',
+              fontWeight: 600,
             }}
           >
             {isBlurred ? <EyeOff size={12} /> : <Eye size={12} />}
@@ -108,7 +113,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#94a3b8',
+                color: '#64748b',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -218,14 +223,14 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({
         <div
           style={{
             padding: '10px 14px',
-            borderTop: '1px solid var(--recruiter-border-subtle, #1e293b)',
-            backgroundColor: 'rgba(0, 0, 0, 0.25)',
+            borderTop: '1px solid var(--recruiter-border-subtle, #e2e8f0)',
+            backgroundColor: '#f8fafc',
           }}
         >
           <div
             className="recruiter-mono recruiter-text-11"
             style={{
-              color: 'var(--recruiter-text-secondary, #94a3b8)',
+              color: 'var(--recruiter-text-secondary, #475569)',
               maxHeight: '80px',
               overflowY: 'auto',
               whiteSpace: 'pre-wrap',
@@ -245,7 +250,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({
         style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(9, 13, 22, 0.85)',
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
           backdropFilter: 'blur(4px)',
           display: 'flex',
           alignItems: 'center',

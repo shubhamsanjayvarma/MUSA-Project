@@ -219,12 +219,12 @@ export const DownloadReportButton: React.FC<DownloadReportButtonProps> = ({
         padding: basePadding,
         fontSize: baseFontSize,
         fontWeight: 600,
-        backgroundColor: '#2563eb',
+        backgroundColor: '#0f172a',
         color: '#ffffff',
         borderRadius: '6px',
-        border: 'none',
+        border: '1px solid #0f172a',
         cursor: downloading ? 'wait' : 'pointer',
-        boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
+        boxShadow: 'none',
         transition: 'all 0.15s ease',
       };
     }
@@ -237,10 +237,10 @@ export const DownloadReportButton: React.FC<DownloadReportButtonProps> = ({
         padding: basePadding,
         fontSize: baseFontSize,
         fontWeight: 600,
-        backgroundColor: 'transparent',
-        color: 'var(--recruiter-text-primary, #f8fafc)',
+        backgroundColor: '#ffffff',
+        color: 'var(--recruiter-text-primary, #0f172a)',
         borderRadius: '6px',
-        border: '1px solid var(--recruiter-border-strong, #334155)',
+        border: '1px solid var(--recruiter-border-subtle, #e2e8f0)',
         cursor: downloading ? 'wait' : 'pointer',
         transition: 'all 0.15s ease',
       };
@@ -254,11 +254,11 @@ export const DownloadReportButton: React.FC<DownloadReportButtonProps> = ({
       padding: basePadding,
       fontSize: baseFontSize,
       fontWeight: 600,
-      backgroundColor: 'var(--recruiter-surface-elevated, #141e33)',
-      color: 'var(--recruiter-text-primary, #f8fafc)',
+      backgroundColor: 'var(--recruiter-surface, #ffffff)',
+      color: 'var(--recruiter-text-primary, #0f172a)',
       borderRadius: '6px',
-      border: 'none',
-      boxShadow: 'rgba(255, 255, 255, 0.14) 0px 0px 0px 1px',
+      border: '1px solid var(--recruiter-border-subtle, #e2e8f0)',
+      boxShadow: 'none',
       cursor: downloading ? 'wait' : 'pointer',
       transition: 'all 0.15s ease',
     };
@@ -271,7 +271,7 @@ export const DownloadReportButton: React.FC<DownloadReportButtonProps> = ({
         type="button"
         onClick={handleDownload}
         disabled={downloading}
-        className={`recruiter-mono ${className}`}
+        className={className}
         style={{
           ...getButtonStyles(),
           ...style,
@@ -285,12 +285,12 @@ export const DownloadReportButton: React.FC<DownloadReportButtonProps> = ({
           </>
         ) : downloadSuccess ? (
           <>
-            <Check size={16} color="#34d399" />
+            <Check size={16} color="#16a34a" />
             <span>Downloaded!</span>
           </>
         ) : (
           <>
-            <FileDown size={16} color="#38bdf8" />
+            <FileDown size={16} color={variant === 'primary' ? '#ffffff' : '#0f172a'} />
             <span>{buttonText}</span>
           </>
         )}
@@ -298,8 +298,8 @@ export const DownloadReportButton: React.FC<DownloadReportButtonProps> = ({
 
       {downloadError && (
         <span
-          className="recruiter-mono recruiter-text-11"
-          style={{ color: '#fb7185', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          className="recruiter-text-11"
+          style={{ color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
         >
           <AlertCircle size={12} /> {downloadError}
         </span>

@@ -1,65 +1,73 @@
-/* InterviewShield Recruiter UI — Canonical Tokens & Components */
-/* Source of Truth: DESIGN.md & assets/ */
+/* InterviewShield Recruiter UI — Canonical White Design DNA Tokens & Components */
+/* Source of Truth: White Design DNA, DESIGN.md & assets/ */
 
 :root {
-  /* OKLCH & Hex Slate Palette */
-  --recruiter-bg: #090d16;
-  --recruiter-surface: #0f172a;
-  --recruiter-surface-elevated: #141e33;
-  --recruiter-surface-hover: #1e293b;
-  --recruiter-border-subtle: #1e293b;
-  --recruiter-border-strong: #334155;
-  --recruiter-border-subpixel: rgba(255, 255, 255, 0.14);
+  /* White Design DNA Palette */
+  --recruiter-bg: #f8fafc;
+  --recruiter-surface: #ffffff;
+  --recruiter-surface-elevated: #ffffff;
+  --recruiter-surface-muted: #f1f5f9;
+  --recruiter-surface-hover: #f8fafc;
+  --recruiter-border-subtle: #e2e8f0;
+  --recruiter-border-strong: #cbd5e1;
+  --recruiter-border-subpixel: rgba(0, 0, 0, 0.08);
 
-  --recruiter-text-primary: #f8fafc;
-  --recruiter-text-secondary: #94a3b8;
+  --recruiter-text-primary: #0f172a;
+  --recruiter-text-secondary: #475569;
   --recruiter-text-muted: #64748b;
-  --recruiter-text-inverse: #090d16;
+  --recruiter-text-inverse: #ffffff;
 
-  /* Risk States */
-  --risk-normal-fg: #34d399;
-  --risk-normal-bg: rgba(16, 185, 129, 0.12);
-  --risk-normal-border: rgba(16, 185, 129, 0.3);
+  /* Risk States for Light Background */
+  --risk-normal-fg: #15803d;
+  --risk-normal-bg: #f0fdf4;
+  --risk-normal-border: #bbf7d0;
+  --risk-normal-stroke: #10b981;
 
-  --risk-attention-fg: #fbbf24;
-  --risk-attention-bg: rgba(245, 158, 11, 0.12);
-  --risk-attention-border: rgba(245, 158, 11, 0.3);
+  --risk-attention-fg: #b45309;
+  --risk-attention-bg: #fffbeb;
+  --risk-attention-border: #fde68a;
+  --risk-attention-stroke: #f59e0b;
 
-  --risk-suspicious-fg: #fb923c;
-  --risk-suspicious-bg: rgba(249, 115, 22, 0.12);
-  --risk-suspicious-border: rgba(249, 115, 22, 0.3);
+  --risk-suspicious-fg: #c2410c;
+  --risk-suspicious-bg: #fff7ed;
+  --risk-suspicious-border: #ffedd5;
+  --risk-suspicious-stroke: #f97316;
 
-  --risk-high-risk-fg: #fb7185;
-  --risk-high-risk-bg: rgba(244, 63, 94, 0.12);
-  --risk-high-risk-border: rgba(244, 63, 94, 0.3);
+  --risk-high-risk-fg: #b91c1c;
+  --risk-high-risk-bg: #fef2f2;
+  --risk-high-risk-border: #fecaca;
+  --risk-high-risk-stroke: #ef4444;
 
   /* Shadows */
-  --shadow-subpixel-1px: rgba(255, 255, 255, 0.14) 0px 0px 0px 1px;
-  --shadow-elevation-card: rgba(0, 0, 0, 0.24) 0px 0px 3px -1px, rgba(0, 0, 0, 0.16) 0px 0px 0.5px 0px, rgba(0, 0, 0, 0.36) -0.5px 2px 3px -2px;
+  --shadow-subpixel-1px: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+  --shadow-elevation-card: 0 1px 3px 0 rgba(16, 24, 40, 0.06), 0 1px 2px -1px rgba(16, 24, 40, 0.04);
 }
 
 @supports (color: oklch(0 0 0)) {
   :root {
-    --recruiter-bg: oklch(0.1372 0.0736 263.5);
-    --recruiter-surface: oklch(0.2221 0 0);
+    --recruiter-bg: oklch(0.985 0.002 247.8);
+    --recruiter-surface: #ffffff;
   }
 }
 
-/* Subpixel 1px Outlines */
+/* Pristine White Subpixel Cards */
 .recruiter-subpixel-card {
-  background-color: var(--recruiter-surface);
-  box-shadow: var(--shadow-subpixel-1px);
+  background-color: var(--recruiter-surface, #ffffff);
+  border: 1px solid var(--recruiter-border-subtle, #e2e8f0);
+  box-shadow: none;
   border-radius: 8px;
-  transition: box-shadow 0.2s ease, background-color 0.2s ease;
+  transition: border-color 0.15s ease;
 }
 
 .recruiter-subpixel-card:hover {
-  box-shadow: rgba(255, 255, 255, 0.22) 0px 0px 0px 1px, 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: none;
+  border-color: var(--recruiter-border-strong, #cbd5e1);
 }
 
 .recruiter-subpixel-card-elevated {
-  background-color: var(--recruiter-surface-elevated);
-  box-shadow: var(--shadow-subpixel-1px);
+  background-color: var(--recruiter-surface-elevated, #ffffff);
+  border: 1px solid var(--recruiter-border-subtle, #e2e8f0);
+  box-shadow: none;
   border-radius: 8px;
 }
 
@@ -116,7 +124,9 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  contain: layout size;
+  min-width: 280px;
+  min-height: 180px;
+  contain: layout size style;
 }
 
 /* Arc transition */
@@ -138,15 +148,15 @@
 
 /* Virtualized list row outline */
 .recruiter-timeline-row {
-  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid #f1f5f9;
   transition: background-color 0.15s ease;
 }
 
 .recruiter-timeline-row:hover {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: #f8fafc;
 }
 
 .recruiter-timeline-row.active {
-  background-color: rgba(59, 130, 246, 0.08);
-  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3) inset;
+  background-color: #eff6ff;
+  border-left: 2px solid #2563eb;
 }

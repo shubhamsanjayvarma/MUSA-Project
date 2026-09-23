@@ -20,6 +20,11 @@ import { RadialScoreGauge } from './RadialScoreGauge.js';
 import { IncidentTimeline, IncidentEvent } from './IncidentTimeline.js';
 import { ReviewPanel } from './ReviewPanel.js';
 import { DownloadReportButton } from './DownloadReportButton.js';
+import { ExplainableRiskLedger } from './ExplainableRiskLedger.js';
+import {
+  InteractiveTelemetrySimulator,
+  SimulatedSignalEvent,
+} from '../common/InteractiveTelemetrySimulator.js';
 import './recruiter.css';
 
 export interface RecruiterCommandCenterProps {
@@ -178,6 +183,49 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
     ]);
   };
 
+  const handleSignalSimulated = (simEvent: SimulatedSignalEvent, nextScore: number) => {
+    const newSeq = events.length > 0 ? Math.max(...events.map((e) => e.sequenceNumber || 0)) + 1 : 1;
+    const newEvt: IncidentEvent = {
+      id: `sim-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      sequenceNumber: newSeq,
+      eventType: simEvent.eventType,
+      detectorId: simEvent.detectorId,
+      title: simEvent.title,
+      serverTimestamp: new Date().toISOString(),
+      clientTimestamp: new Date().toISOString(),
+      severity: simEvent.severity,
+      confidence: simEvent.confidence,
+      scoreBefore: integrityScore,
+      scoreAfter: nextScore,
+      hasEvidence: simEvent.hasEvidence,
+      evidenceUrl: simEvent.evidenceUrl,
+      payload: { ...simEvent.payload, isSimulated: true },
+    };
+
+    setEvents((prev) => [newEvt, ...prev]);
+    setIntegrityScore(nextScore);
+  };
+
+  const handleResetScore = () => {
+    setIntegrityScore(100);
+    const newSeq = events.length > 0 ? Math.max(...events.map((e) => e.sequenceNumber || 0)) + 1 : 1;
+    const resetEvt: IncidentEvent = {
+      id: `sim-reset-${Date.now()}`,
+      sequenceNumber: newSeq,
+      eventType: 'clean_baseline_restored',
+      detectorId: 'risk-recovery-engine',
+      title: 'Clean observation recovery (baseline restored)',
+      serverTimestamp: new Date().toISOString(),
+      clientTimestamp: new Date().toISOString(),
+      severity: 'low',
+      confidence: 1.0,
+      scoreBefore: integrityScore,
+      scoreAfter: 100,
+      payload: { reason: 'manual_demonstration_reset', isSimulated: true },
+    };
+    setEvents((prev) => [resetEvt, ...prev]);
+  };
+
   useEffect(() => {
     loadData();
   }, [effectiveSessionId]);
@@ -186,9 +234,9 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
     <div
       className={`recruiter-command-center ${className}`}
       style={{
-        backgroundColor: 'var(--recruiter-bg, #090d16)',
-        color: 'var(--recruiter-text-primary, #f8fafc)',
-        minHeight: '100vh',
+        backgroundColor: 'var(--recruiter-bg, #f8fafc)',
+        color: 'var(--recruiter-text-primary, #0f172a)',
+        minHeight: '100%',
         padding: '24px 32px',
         display: 'flex',
         flexDirection: 'column',
@@ -217,13 +265,13 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
                 alignItems: 'center',
                 gap: '6px',
                 padding: '8px 12px',
-                color: 'var(--recruiter-text-secondary, #94a3b8)',
+                color: 'var(--recruiter-text-secondary, #475569)',
+                backgroundColor: '#ffffff',
                 cursor: 'pointer',
-                border: 'none',
               }}
             >
               <ArrowLeft size={16} />
-              <span className="recruiter-mono recruiter-text-12">Dashboard</span>
+              <span className="recruiter-text-12" style={{ fontWeight: 500 }}>Dashboard</span>
             </button>
           )}
 
@@ -234,24 +282,12 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
                 style={{
                   fontWeight: 700,
                   margin: 0,
-                  color: 'var(--recruiter-text-primary, #f8fafc)',
+                  color: 'var(--recruiter-text-primary, #0f172a)',
                   letterSpacing: '-0.025em',
                 }}
               >
                 Recruiter Command Center
               </h1>
-              <span
-                className="recruiter-mono recruiter-text-11"
-                style={{
-                  padding: '2px 8px',
-                  borderRadius: '9999px',
-                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                  color: '#60a5fa',
-                  border: '1px solid rgba(59, 130, 246, 0.3)',
-                }}
-              >
-                SECURE TELEMETRY
-              </span>
             </div>
             <div
               style={{
@@ -260,14 +296,14 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
                 gap: '12px',
                 marginTop: '4px',
                 fontSize: '0.8125rem',
-                color: 'var(--recruiter-text-secondary, #94a3b8)',
+                color: 'var(--recruiter-text-secondary, #475569)',
               }}
             >
-              <span>Candidate: <strong style={{ color: '#f8fafc' }}>{candidateName}</strong></span>
+              <span>Candidate: <strong style={{ color: '#0f172a' }}>{candidateName}</strong></span>
               <span>•</span>
-              <span>Role: <strong style={{ color: '#f8fafc' }}>{candidateRole}</strong></span>
+              <span>Role: <strong style={{ color: '#0f172a' }}>{candidateRole}</strong></span>
               <span>•</span>
-              <span className="recruiter-mono tnum">Session: {effectiveSessionId.slice(0, 10)}</span>
+              <span className="tnum">Session: {effectiveSessionId.slice(0, 10)}</span>
             </div>
           </div>
         </div>
@@ -281,16 +317,16 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '9px 14px',
-              backgroundColor: 'var(--recruiter-surface, #0f172a)',
-              color: 'var(--recruiter-text-secondary, #94a3b8)',
+              padding: '8px 14px',
+              backgroundColor: '#ffffff',
+              color: 'var(--recruiter-text-secondary, #475569)',
               cursor: refreshing ? 'wait' : 'pointer',
-              border: 'none',
+              boxShadow: 'none',
             }}
             title="Refresh real-time telemetry stream"
           >
             <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            <span className="recruiter-mono recruiter-text-12">Sync</span>
+            <span className="recruiter-text-12" style={{ fontWeight: 500 }}>Sync</span>
           </button>
 
           {/* Actionable Download Audit Report Button */}
@@ -310,7 +346,7 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
         style={{
           display: 'grid',
           gridTemplateColumns: '280px 1fr 1.2fr',
-          gap: '20px',
+          gap: '16px',
           alignItems: 'stretch',
         }}
       >
@@ -318,7 +354,6 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
         <RadialScoreGauge
           score={integrityScore}
           label="Assessment Integrity"
-          subtext="Rule 34 Zero-Primitive Verified"
           size="standard"
           showBadge={true}
           showTicks={true}
@@ -328,11 +363,13 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
         <div
           className="recruiter-subpixel-card"
           style={{
-            padding: '18px 20px',
+            padding: '16px 20px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
             gap: '12px',
+            backgroundColor: '#ffffff',
+            boxShadow: 'none',
           }}
         >
           <div
@@ -340,38 +377,17 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              borderBottom: '1px solid var(--recruiter-border-subtle, #1e293b)',
+              borderBottom: '1px solid #e2e8f0',
               paddingBottom: '10px',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Layers size={16} color="#3b82f6" />
+              <Layers size={16} color="#0f172a" />
               <span
-                className="recruiter-mono recruiter-text-12"
-                style={{ fontWeight: 600, color: 'var(--recruiter-text-primary, #f8fafc)' }}
+                style={{ fontWeight: 600, fontSize: '0.8125rem', color: '#0f172a' }}
               >
                 Telemetry Sensor Feeds
               </span>
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                color: '#34d399',
-                fontSize: '0.6875rem',
-              }}
-            >
-              <span
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: '#34d399',
-                  boxShadow: '0 0 6px #34d399',
-                }}
-              />
-              <span className="recruiter-mono">STREAM ACTIVE</span>
             </div>
           </div>
 
@@ -379,47 +395,44 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              gap: '10px',
+              gap: '12px 24px',
+              padding: '6px 0',
             }}
           >
             {/* Feed 1: Face Presence */}
             <div
               style={{
-                padding: '8px 10px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--recruiter-bg, #090d16)',
-                border: '1px solid var(--recruiter-border-subtle, #1e293b)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                paddingBottom: '8px',
+                borderBottom: '1px solid #f1f5f9',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Video size={14} color="#60a5fa" />
-                <span className="recruiter-text-12">Face Presence</span>
+                <Video size={14} color="#64748b" />
+                <span style={{ color: '#334155', fontWeight: 500, fontSize: '0.75rem' }}>Face Presence</span>
               </div>
-              <span className="recruiter-mono recruiter-text-11" style={{ color: '#34d399', fontWeight: 600 }}>
+              <span className="tnum" style={{ color: '#15803d', fontWeight: 600, fontSize: '0.75rem' }}>
                 100%
               </span>
             </div>
 
-            {/* Feed 2: Audio Correlator */}
+            {/* Feed 2: Speech Sync */}
             <div
               style={{
-                padding: '8px 10px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--recruiter-bg, #090d16)',
-                border: '1px solid var(--recruiter-border-subtle, #1e293b)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                paddingBottom: '8px',
+                borderBottom: '1px solid #f1f5f9',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Mic size={14} color="#60a5fa" />
-                <span className="recruiter-text-12">Speech Sync</span>
+                <Mic size={14} color="#64748b" />
+                <span style={{ color: '#334155', fontWeight: 500, fontSize: '0.75rem' }}>Speech Sync</span>
               </div>
-              <span className="recruiter-mono recruiter-text-11" style={{ color: '#34d399', fontWeight: 600 }}>
+              <span style={{ color: '#15803d', fontWeight: 600, fontSize: '0.75rem' }}>
                 Synced
               </span>
             </div>
@@ -427,20 +440,18 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
             {/* Feed 3: Screen Stream */}
             <div
               style={{
-                padding: '8px 10px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--recruiter-bg, #090d16)',
-                border: '1px solid var(--recruiter-border-subtle, #1e293b)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                paddingBottom: '8px',
+                borderBottom: '1px solid #f1f5f9',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Monitor size={14} color="#60a5fa" />
-                <span className="recruiter-text-12">Screen Sharing</span>
+                <Monitor size={14} color="#64748b" />
+                <span style={{ color: '#334155', fontWeight: 500, fontSize: '0.75rem' }}>Screen Sharing</span>
               </div>
-              <span className="recruiter-mono recruiter-text-11" style={{ color: '#34d399', fontWeight: 600 }}>
+              <span style={{ color: '#15803d', fontWeight: 600, fontSize: '0.75rem' }}>
                 Active
               </span>
             </div>
@@ -448,20 +459,18 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
             {/* Feed 4: Tab Focus */}
             <div
               style={{
-                padding: '8px 10px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--recruiter-bg, #090d16)',
-                border: '1px solid var(--recruiter-border-subtle, #1e293b)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                paddingBottom: '8px',
+                borderBottom: '1px solid #f1f5f9',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Activity size={14} color="#60a5fa" />
-                <span className="recruiter-text-12">Tab Focus</span>
+                <Activity size={14} color="#64748b" />
+                <span style={{ color: '#334155', fontWeight: 500, fontSize: '0.75rem' }}>Tab Focus</span>
               </div>
-              <span className="recruiter-mono recruiter-text-11" style={{ color: '#fbbf24', fontWeight: 600 }}>
+              <span style={{ color: '#b45309', fontWeight: 600, fontSize: '0.75rem' }}>
                 1 Switch
               </span>
             </div>
@@ -473,12 +482,12 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
               justifyContent: 'space-between',
               alignItems: 'center',
               fontSize: '0.75rem',
-              color: 'var(--recruiter-text-secondary, #94a3b8)',
+              color: 'var(--recruiter-text-secondary, #64748b)',
               paddingTop: '6px',
             }}
           >
-            <span>Telemetry Frequency: <strong>2 FPS</strong></span>
-            <span className="recruiter-mono tnum">Elapsed: {sessionDuration}</span>
+            <span>Telemetry Frequency: <strong style={{ color: '#0f172a' }}>2 FPS</strong></span>
+            <span className="tnum">Elapsed: {sessionDuration}</span>
           </div>
         </div>
 
@@ -490,7 +499,24 @@ export const RecruiterCommandCenter: React.FC<RecruiterCommandCenterProps> = ({
         />
       </div>
 
-      {/* Main Section: Virtualized Incident Timeline Ledger */}
+      {/* Interactive Telemetry Signal Simulator (tactile trigger for the 7 canonical signals) */}
+      <InteractiveTelemetrySimulator
+        currentScore={integrityScore}
+        onSignalTriggered={handleSignalSimulated}
+        onResetScore={handleResetScore}
+        defaultExpanded={false}
+      />
+
+      {/* Level 2 Progressive Disclosure: Explainable Risk Matrix */}
+      <ExplainableRiskLedger
+        currentScore={integrityScore}
+        peakScore={100}
+        recoveryApplied={2}
+        cleanMinutes={4}
+        events={events}
+      />
+
+      {/* Level 3 Progressive Disclosure: Virtualized Incident Timeline Ledger */}
       <div>
         <IncidentTimeline
           events={events}

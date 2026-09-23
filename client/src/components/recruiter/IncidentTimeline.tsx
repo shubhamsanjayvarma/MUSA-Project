@@ -81,38 +81,38 @@ export function getSeverityStyle(severity: EventSeverity) {
     case 'critical':
       return {
         label: 'CRITICAL',
-        color: 'var(--risk-high-risk-fg, #fb7185)',
-        bg: 'var(--risk-high-risk-bg, rgba(244, 63, 94, 0.12))',
-        border: 'var(--risk-high-risk-border, rgba(244, 63, 94, 0.3))',
+        color: '#b91c1c',
+        bg: '#fef2f2',
+        border: '#fecaca',
       };
     case 'high':
       return {
         label: 'HIGH',
-        color: 'var(--risk-suspicious-fg, #fb923c)',
-        bg: 'var(--risk-suspicious-bg, rgba(249, 115, 22, 0.12))',
-        border: 'var(--risk-suspicious-border, rgba(249, 115, 22, 0.3))',
+        color: '#c2410c',
+        bg: '#fff7ed',
+        border: '#ffedd5',
       };
     case 'medium':
       return {
         label: 'MEDIUM',
-        color: 'var(--risk-attention-fg, #fbbf24)',
-        bg: 'var(--risk-attention-bg, rgba(245, 158, 11, 0.12))',
-        border: 'var(--risk-attention-border, rgba(245, 158, 11, 0.3))',
+        color: '#b45309',
+        bg: '#fffbeb',
+        border: '#fde68a',
       };
     case 'low':
       return {
         label: 'LOW',
-        color: '#60a5fa',
-        bg: 'rgba(59, 130, 246, 0.12)',
-        border: 'rgba(59, 130, 246, 0.3)',
+        color: '#1d4ed8',
+        bg: '#eff6ff',
+        border: '#bfdbfe',
       };
     case 'info':
     default:
       return {
         label: 'INFO',
-        color: 'var(--recruiter-text-secondary, #94a3b8)',
-        bg: 'rgba(148, 163, 184, 0.1)',
-        border: 'rgba(148, 163, 184, 0.25)',
+        color: '#475569',
+        bg: '#f8fafc',
+        border: '#e2e8f0',
       };
   }
 }
@@ -211,7 +211,7 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        backgroundColor: 'var(--recruiter-surface, #0f172a)',
+        backgroundColor: '#ffffff',
         ...style,
       }}
       role="region"
@@ -226,14 +226,14 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
           justifyContent: 'space-between',
           gap: '12px',
           padding: '14px 18px',
-          borderBottom: '1px solid var(--recruiter-border-subtle, #1e293b)',
+          borderBottom: '1px solid #e2e8f0',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Activity size={18} color="var(--color-primary, #3b82f6)" />
+          <Activity size={18} color="#2563eb" />
           <span
             className="recruiter-mono recruiter-text-13"
-            style={{ fontWeight: 600, color: 'var(--recruiter-text-primary, #f8fafc)' }}
+            style={{ fontWeight: 600, color: 'var(--recruiter-text-primary, #0f172a)' }}
           >
             Incident Telemetry Timeline
           </span>
@@ -242,9 +242,10 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
             style={{
               padding: '2px 8px',
               borderRadius: '9999px',
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              color: 'var(--recruiter-text-secondary, #94a3b8)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: '#f1f5f9',
+              color: 'var(--recruiter-text-secondary, #475569)',
+              border: '1px solid #e2e8f0',
+              fontWeight: 600,
             }}
           >
             {filteredEvents.length} events
@@ -252,7 +253,7 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
           {isVirtualized && (
             <span
               className="recruiter-mono recruiter-text-11"
-              style={{ color: '#38bdf8', opacity: 0.8 }}
+              style={{ color: '#2563eb', opacity: 0.8 }}
               title="Virtualized for smooth 60fps rendering"
             >
               [Virtualized]
@@ -272,7 +273,7 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
             >
               <Search
                 size={14}
-                color="var(--recruiter-text-muted, #64748b)"
+                color="#64748b"
                 style={{ position: 'absolute', left: '10px', pointerEvents: 'none' }}
               />
               <input
@@ -283,10 +284,10 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                 className="recruiter-text-12"
                 style={{
                   padding: '6px 12px 6px 30px',
-                  backgroundColor: 'var(--recruiter-bg, #090d16)',
-                  border: '1px solid var(--recruiter-border-subtle, #1e293b)',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
                   borderRadius: '6px',
-                  color: 'var(--recruiter-text-primary, #f8fafc)',
+                  color: 'var(--recruiter-text-primary, #0f172a)',
                   width: '160px',
                   outline: 'none',
                 }}
@@ -307,10 +308,11 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                     className="recruiter-mono recruiter-text-11"
                     style={{
                       padding: '4px 10px',
-                      borderRadius: '4px',
-                      border: `1px solid ${isActive ? '#3b82f6' : 'rgba(255, 255, 255, 0.1)'}`,
-                      backgroundColor: isActive ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
-                      color: isActive ? '#60a5fa' : 'var(--recruiter-text-secondary, #94a3b8)',
+                      borderRadius: '6px',
+                      border: `1px solid ${isActive ? '#2563eb' : '#e2e8f0'}`,
+                      backgroundColor: isActive ? '#eff6ff' : '#ffffff',
+                      color: isActive ? '#2563eb' : 'var(--recruiter-text-secondary, #475569)',
+                      fontWeight: isActive ? 600 : 500,
                       cursor: 'pointer',
                       textTransform: 'capitalize',
                       transition: 'all 0.15s ease',
@@ -347,17 +349,17 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
               gap: '12px',
             }}
           >
-            <ShieldCheck size={40} color="var(--risk-normal-fg, #34d399)" style={{ opacity: 0.8 }} />
+            <ShieldCheck size={40} color="#16a34a" style={{ opacity: 0.9 }} />
             <div>
               <p
                 className="recruiter-text-14"
-                style={{ fontWeight: 600, color: 'var(--recruiter-text-primary, #f8fafc)' }}
+                style={{ fontWeight: 600, color: 'var(--recruiter-text-primary, #0f172a)' }}
               >
                 No Anomaly Events Detected
               </p>
               <p
                 className="recruiter-text-12"
-                style={{ color: 'var(--recruiter-text-secondary, #94a3b8)', marginTop: '4px' }}
+                style={{ color: 'var(--recruiter-text-secondary, #64748b)', marginTop: '4px' }}
               >
                 {events.length === 0
                   ? 'Candidate behavior is completely clean and aligned with policy.'
@@ -429,14 +431,14 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <span
                             className="tnum recruiter-mono recruiter-text-12"
-                            style={{ color: 'var(--recruiter-text-secondary, #94a3b8)', fontWeight: 500 }}
+                            style={{ color: 'var(--recruiter-text-secondary, #475569)', fontWeight: 500 }}
                           >
                             {formatTimestamp(ev)}
                           </span>
                           {ev.sequenceNumber !== undefined && (
                             <span
                               className="recruiter-mono recruiter-text-11"
-                              style={{ color: 'var(--recruiter-text-muted, #64748b)' }}
+                              style={{ color: 'var(--recruiter-text-muted, #94a3b8)' }}
                             >
                               seq #{ev.sequenceNumber}
                             </span>
@@ -486,7 +488,7 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                             className="recruiter-text-13"
                             style={{
                               fontWeight: 600,
-                              color: 'var(--recruiter-text-primary, #f8fafc)',
+                              color: 'var(--recruiter-text-primary, #0f172a)',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                             }}
@@ -496,7 +498,7 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                           {ev.detail && (
                             <span
                               className="recruiter-text-11"
-                              style={{ color: 'var(--recruiter-text-secondary, #94a3b8)' }}
+                              style={{ color: 'var(--recruiter-text-secondary, #64748b)' }}
                             >
                               {ev.detail}
                             </span>
@@ -526,22 +528,22 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                               fontWeight: 700,
                               backgroundColor:
                                 scoreDelta < 0
-                                  ? 'var(--risk-high-risk-bg, rgba(244, 63, 94, 0.12))'
+                                  ? '#fef2f2'
                                   : scoreDelta > 0
-                                  ? 'var(--risk-normal-bg, rgba(16, 185, 129, 0.12))'
-                                  : 'rgba(255, 255, 255, 0.06)',
+                                  ? '#f0fdf4'
+                                  : '#f8fafc',
                               color:
                                 scoreDelta < 0
-                                  ? 'var(--risk-high-risk-fg, #fb7185)'
+                                  ? '#b91c1c'
                                   : scoreDelta > 0
-                                  ? 'var(--risk-normal-fg, #34d399)'
-                                  : 'var(--recruiter-text-secondary, #94a3b8)',
+                                  ? '#15803d'
+                                  : '#475569',
                               border: `1px solid ${
                                 scoreDelta < 0
-                                  ? 'var(--risk-high-risk-border, rgba(244, 63, 94, 0.3))'
+                                  ? '#fecaca'
                                   : scoreDelta > 0
-                                  ? 'var(--risk-normal-border, rgba(16, 185, 129, 0.3))'
-                                  : 'rgba(255, 255, 255, 0.1)'
+                                  ? '#bbf7d0'
+                                  : '#e2e8f0'
                               }`,
                             }}
                           >
@@ -577,11 +579,12 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '4px',
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                              backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                              color: '#60a5fa',
-                              border: '1px solid rgba(59, 130, 246, 0.3)',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              backgroundColor: '#eff6ff',
+                              color: '#2563eb',
+                              border: '1px solid #bfdbfe',
+                              fontWeight: 600,
                               cursor: 'pointer',
                             }}
                           >
@@ -595,9 +598,9 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                     {isExpanded && (
                       <div
                         style={{
-                          backgroundColor: 'var(--recruiter-surface-elevated, #141e33)',
-                          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-                          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                          backgroundColor: '#f8fafc',
+                          borderTop: '1px solid #e2e8f0',
+                          borderBottom: '1px solid #e2e8f0',
                           padding: '16px 20px',
                           display: 'grid',
                           gridTemplateColumns: ev.evidenceUrl || ev.hasEvidence ? '1fr 320px' : '1fr',
@@ -618,7 +621,7 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                               style={{
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.05em',
-                                color: 'var(--recruiter-text-secondary, #94a3b8)',
+                                color: 'var(--recruiter-text-secondary, #475569)',
                                 fontWeight: 600,
                               }}
                             >
@@ -627,7 +630,7 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                             {ev.detectorId && (
                               <span
                                 className="recruiter-mono recruiter-text-11"
-                                style={{ color: '#38bdf8' }}
+                                style={{ color: '#2563eb', fontWeight: 600 }}
                               >
                                 Detector: {ev.detectorId}
                               </span>
@@ -637,11 +640,11 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                           <pre
                             className="recruiter-mono tnum recruiter-text-11"
                             style={{
-                              backgroundColor: '#050811',
+                              backgroundColor: '#ffffff',
                               padding: '12px',
-                              borderRadius: '6px',
-                              border: '1px solid var(--recruiter-border-subtle, #1e293b)',
-                              color: '#e2e8f0',
+                              borderRadius: '8px',
+                              border: '1px solid #e2e8f0',
+                              color: '#0f172a',
                               maxHeight: '160px',
                               overflowY: 'auto',
                               margin: 0,
