@@ -1,0 +1,323 @@
+/* ==========================================================================
+   InterviewShield — Production Design System & Token Specifications
+   Extracted from:
+     - assets/general-team-settings-dashboard.tailwind-v4.Woblo.css
+     - assets/general-team-settings-dashboard.shadcn.Woblo.css
+     - assets/Design (1).md
+     - DESIGN.md
+   Compliant with WCAG 2.2 AA Contrast & Minimalist UI Aesthetic Governor
+   ========================================================================== */
+
+:root {
+  /* ------------------------------------------------------------------------
+     1. OKLCH Dark Slate Semantic Palette (shadcn / Tailwind compatible)
+     Calibrated lightness ladder: Canvas -> Card -> Elevated Card -> Border
+     ------------------------------------------------------------------------ */
+  --background: oklch(0.1286 0 0);            /* Dark Slate Canvas (Neutral-950) */
+  --foreground: oklch(0.9702 0 0);            /* High contrast text (Neutral-50) */
+
+  --card: oklch(0.2221 0 0);                  /* Card default background (Neutral-900) */
+  --card-foreground: oklch(0.9702 0 0);       /* Card foreground text */
+  --card-elevated: oklch(0.3211 0 0);         /* Elevated card surface (Neutral-800) */
+
+  --popover: oklch(0.2221 0 0);               /* Popover / Dropdown background */
+  --popover-foreground: oklch(0.9702 0 0);    /* Popover text */
+
+  --primary: oklch(0.6292 0.1525 251);        /* Brand primary blue (Brand-500) */
+  --primary-foreground: oklch(0.9702 0 0);   /* Contrast text on primary */
+
+  --secondary: oklch(0.2285 0.04 260.4);      /* Subtle secondary surface */
+  --secondary-foreground: oklch(0.9401 0 0);  /* Secondary text */
+
+  --muted: oklch(0.2221 0 0);                  /* Muted surface */
+  --muted-foreground: oklch(0.7412 0 0);      /* Muted text (Neutral-400, >= 4.5:1 AA) */
+
+  --accent: oklch(0.5759 0.2146 258.1);       /* Vibrant accent blue (Accent-500) */
+  --accent-foreground: oklch(0.9702 0 0);     /* Accent text */
+
+  --destructive: oklch(0.637 0.237 25.331);   /* Error / Destructive action */
+  --destructive-foreground: oklch(0.9702 0 0);
+
+  --border: oklch(0.3211 0 0);                /* Standard structural border (Neutral-800) */
+  --border-subtle: oklch(0.2285 0.02 260.4);  /* Subtle divider */
+  --border-strong: oklch(0.4202 0 0);         /* Highlighted border */
+  --input: oklch(0.3211 0 0);                 /* Input border */
+  --ring: oklch(0.6292 0.1525 251);           /* Focus ring indicator (Brand-500) */
+
+  --radius: 0.375rem;                         /* Default radius (6px / md) */
+
+  /* ------------------------------------------------------------------------
+     2. OKLCH Primitive Scales (Brand, Accent, Neutral)
+     ------------------------------------------------------------------------ */
+  /* Brand Scale */
+  --color-brand-50: oklch(0.9665 0.023 220.7);
+  --color-brand-100: oklch(0.9347 0.0366 235.5);
+  --color-brand-200: oklch(0.8944 0.0572 240.5);
+  --color-brand-300: oklch(0.8236 0.0944 245.4);
+  --color-brand-400: oklch(0.7173 0.1522 251);
+  --color-brand-500: oklch(0.6292 0.1525 251);
+  --color-brand-600: oklch(0.5206 0.1401 251);
+  --color-brand-700: oklch(0.4216 0.1257 251.9);
+  --color-brand-800: oklch(0.325 0.1111 256);
+  --color-brand-900: oklch(0.2285 0.0954 260.4);
+  --color-brand-950: oklch(0.1372 0.0736 263.5);
+
+  /* Accent Scale */
+  --color-accent-50: oklch(0.9647 0.02 233.8);
+  --color-accent-100: oklch(0.9354 0.0338 242.7);
+  --color-accent-200: oklch(0.8949 0.0534 249.3);
+  --color-accent-300: oklch(0.8235 0.0902 253.4);
+  --color-accent-400: oklch(0.7332 0.1402 255.2);
+  --color-accent-500: oklch(0.5759 0.2146 258.1);
+  --color-accent-600: oklch(0.5199 0.1971 258.5);
+  --color-accent-700: oklch(0.4231 0.177 260.5);
+  --color-accent-800: oklch(0.3265 0.1576 262.5);
+  --color-accent-900: oklch(0.2268 0.1404 264.2);
+  --color-accent-950: oklch(0.1433 0.0993 264.1);
+
+  /* Neutral Scale */
+  --color-neutral-50: oklch(0.9702 0 0);
+  --color-neutral-100: oklch(0.9401 0 0);
+  --color-neutral-200: oklch(0.9006 0 0);
+  --color-neutral-300: oklch(0.8297 0 0);
+  --color-neutral-400: oklch(0.7412 0 0);
+  --color-neutral-500: oklch(0.6301 0 0);
+  --color-neutral-600: oklch(0.5208 0 0);
+  --color-neutral-700: oklch(0.4202 0 0);
+  --color-neutral-800: oklch(0.3211 0 0);
+  --color-neutral-900: oklch(0.2221 0 0);
+  --color-neutral-950: oklch(0.1286 0 0);
+
+  /* Hex Palettes (Design 1.md & DESIGN.md bridge) */
+  --color-slate-950: #090d16;
+  --color-slate-900: #0f172a;
+  --color-slate-850: #141e33;
+  --color-slate-800: #1e293b;
+  --color-slate-700: #334155;
+  --color-slate-600: #475569;
+  --color-slate-400: #94a3b8;
+  --color-slate-200: #e2e8f0;
+  --color-slate-50: #f8fafc;
+
+  /* Telemetry Status Colors */
+  --color-emerald-500: #10b981;
+  --color-emerald-400: #34d399;
+  --color-amber-500: #f59e0b;
+  --color-amber-400: #fbbf24;
+  --color-orange-500: #f97316;
+  --color-orange-400: #fb923c;
+  --color-rose-500: #f43f5e;
+  --color-rose-400: #fb7185;
+
+  /* ------------------------------------------------------------------------
+     3. Compact Typography Scale
+     Scale: 11px micro, 12px small, 13px regular, 15px card title, 18px page header
+     ------------------------------------------------------------------------ */
+  --font-sans: 'GeistSans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'GeistSans', 'Inter', sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', 'Fira Code', Menlo, monospace;
+
+  /* 11px Micro — Metadata, timestamps, pill badges, indicators */
+  --text-micro: 0.6875rem;          /* 11px */
+  --line-height-micro: 1rem;         /* 16px */
+  --letter-spacing-micro: 0.01em;
+
+  /* 12px Small — Secondary labels, helper text, table captions */
+  --text-small: 0.75rem;             /* 12px */
+  --line-height-small: 1.125rem;     /* 18px */
+  --letter-spacing-small: 0.005em;
+
+  /* 13px Regular — Base high-density body copy, primary table rows */
+  --text-regular: 0.8125rem;         /* 13px */
+  --line-height-regular: 1.25rem;    /* 20px */
+  --letter-spacing-regular: 0;
+
+  /* 15px Card Title — Section headers, widget titles, modal titles */
+  --text-card-title: 0.9375rem;      /* 15px */
+  --line-height-card-title: 1.375rem;/* 22px */
+  --letter-spacing-card-title: -0.01em;
+
+  /* 18px Page Header — Screen titles, dashboard hero captions */
+  --text-page-header: 1.125rem;      /* 18px */
+  --line-height-page-header: 1.5rem; /* 24px */
+  --letter-spacing-page-header: -0.02em;
+
+  /* Explicit Pixel-Named Aliases */
+  --text-11px: 0.6875rem;
+  --text-12px: 0.75rem;
+  --text-13px: 0.8125rem;
+  --text-14px: 0.875rem;
+  --text-15px: 0.9375rem;
+  --text-16px: 1rem;
+  --text-18px: 1.125rem;
+  --text-20px: 1.25rem;
+
+  /* Design (1).md Standard Named Scale */
+  --font-size-xs: 0.6875rem;         /* 11px */
+  --font-size-sm: 0.75rem;           /* 12px */
+  --font-size-base: 0.8125rem;       /* 13px */
+  --font-size-lg: 0.875rem;          /* 14px */
+  --font-size-xl: 0.9375rem;         /* 15px */
+  --font-size-2xl: 1rem;             /* 16px */
+  --font-size-3xl: 1.125rem;         /* 18px */
+  --font-size-4xl: 1.25rem;          /* 20px */
+
+  /* Font Weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ------------------------------------------------------------------------
+     4. Spacing Scale (4px baseline grid)
+     ------------------------------------------------------------------------ */
+  --spacing-0: 0;
+  --spacing-1: 0.125rem;             /* 2px */
+  --spacing-2: 0.25rem;              /* 4px */
+  --spacing-3: 0.375rem;             /* 6px */
+  --spacing-4: 0.5rem;               /* 8px */
+  --spacing-5: 0.625rem;             /* 10px */
+  --spacing-6: 0.75rem;              /* 12px */
+  --spacing-8: 1rem;                 /* 16px */
+  --spacing-10: 1.25rem;             /* 20px */
+  --spacing-12: 1.5rem;              /* 24px */
+  --spacing-16: 2rem;                /* 32px */
+  --spacing-20: 2.5rem;              /* 40px */
+  --spacing-24: 3rem;                /* 48px */
+
+  /* ------------------------------------------------------------------------
+     5. Border Radii
+     ------------------------------------------------------------------------ */
+  --radius-none: 0;
+  --radius-xs: 0.125rem;             /* 2px */
+  --radius-sm: 0.25rem;              /* 4px */
+  --radius-md: 0.375rem;             /* 6px */
+  --radius-lg: 0.5rem;               /* 8px */
+  --radius-xl: 0.75rem;              /* 12px */
+  --radius-2xl: 1rem;                /* 16px */
+  --radius-full: 9999px;
+
+  /* ------------------------------------------------------------------------
+     6. Shadows & Inset Subpixel Ring Tokens
+     ------------------------------------------------------------------------ */
+  /* Iconic 1px subpixel inset ring outline token */
+  --subpixel-ring: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  --subpixel-ring-subtle: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --subpixel-ring-strong: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  --shadow-subpixel: rgba(255, 255, 255, 0.14) 0px 0px 0px 1px;
+
+  --shadow-xs: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(255, 255, 255, 0.14) 0px 0px 0px 1px;
+  --shadow-sm: rgba(255, 255, 255, 0.145) 0px 0px 0px 1px, rgb(0, 0, 0) 0px 0px 0px 1px;
+  --shadow-md: rgba(0, 0, 0, 0.24) 0px 0px 3px -1px, rgba(0, 0, 0, 0.16) 0px 0px 0.5px 0px, rgba(0, 0, 0, 0.36) -0.5px 2px 3px -2px, rgba(255, 255, 255, 0.14) 0px 0px 0px 1px;
+  --shadow-lg: rgba(0, 0, 0, 0.24) 0px 0px 3px -1px, rgba(0, 0, 0, 0.16) 0px 0px 0.5px 0px, rgba(0, 0, 0, 0.36) -0.5px 2px 3px -2px;
+  --shadow-xl: rgb(46, 46, 46) 0px 0px 0px 1px;
+  --focus-ring: 0 0 0 2px var(--background), 0 0 0 4px var(--primary);
+}
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Subpixel Ring Utility
+   Iconic 1px subpixel inset ring outline matching Figma/Woblo spec
+   -------------------------------------------------------------------------- */
+.subpixel-ring {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.subpixel-ring-subtle {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.subpixel-ring-strong {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.subpixel-ring-outset {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+/* --------------------------------------------------------------------------
+   Tabular Numerals Utility
+   Prevents layout jitter during high-frequency telemetry & timer streaming
+   -------------------------------------------------------------------------- */
+.tnum,
+.tabular-nums,
+[data-tabular-nums] {
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   Compact Typography Scale Utilities
+   Scale: 11px micro, 12px small, 13px regular, 15px card title, 18px page header
+   -------------------------------------------------------------------------- */
+.text-micro,
+.text-11px {
+  font-size: var(--text-micro);
+  line-height: var(--line-height-micro);
+  letter-spacing: var(--letter-spacing-micro);
+}
+
+.text-small,
+.text-12px {
+  font-size: var(--text-small);
+  line-height: var(--line-height-small);
+  letter-spacing: var(--letter-spacing-small);
+}
+
+.text-regular,
+.text-13px {
+  font-size: var(--text-regular);
+  line-height: var(--line-height-regular);
+  letter-spacing: var(--letter-spacing-regular);
+}
+
+.text-card-title,
+.text-15px {
+  font-size: var(--text-card-title);
+  line-height: var(--line-height-card-title);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-card-title);
+}
+
+.text-page-header,
+.text-18px {
+  font-size: var(--text-page-header);
+  line-height: var(--line-height-page-header);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-page-header);
+}
+
+/* --------------------------------------------------------------------------
+   Surface & Card Elevation Primitives
+   -------------------------------------------------------------------------- */
+.surface-canvas {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.surface-card {
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  box-shadow: var(--subpixel-ring);
+  border-radius: var(--radius);
+}
+
+.surface-elevated {
+  background-color: var(--card-elevated);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius);
+}
+
+/* --------------------------------------------------------------------------
+   Focus Visibility (WCAG 2.2 AA Compliance)
+   -------------------------------------------------------------------------- */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
