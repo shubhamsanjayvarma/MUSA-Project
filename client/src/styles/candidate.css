@@ -1,40 +1,40 @@
 /* ==========================================================================
    InterviewShield Candidate UI Design System
-   Conforming to DESIGN.md: Dark Slate OKLCH Tokens, Subpixel 1px Ring Outlines,
-   11px-15px Typography Scale, Tabular Numbers, Anti-Slop Ergonomics.
+   Conforming to White Design DNA: #FFFFFF/#F8FAFC, Hairline #E2E8F0 Borders,
+   #0F172A Typography, Tabular Numbers, Zero AI Slop.
    ========================================================================== */
 
 :root {
-  --cand-canvas: #090d16;
-  --cand-card: #0f172a;
-  --cand-card-elevated: #141e33;
-  --cand-border-subtle: #1e293b;
-  --cand-border-strong: #334155;
-  --cand-subpixel-ring: rgba(255, 255, 255, 0.14) 0px 0px 0px 1px;
-  --cand-subpixel-ring-focus: rgba(59, 130, 246, 0.5) 0px 0px 0px 2px;
+  --cand-canvas: #f8fafc;
+  --cand-card: #ffffff;
+  --cand-card-elevated: #ffffff;
+  --cand-border-subtle: #e2e8f0;
+  --cand-border-strong: #cbd5e1;
+  --cand-subpixel-ring: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --cand-subpixel-ring-focus: rgba(15, 23, 42, 0.2) 0px 0px 0px 2px;
   
-  --cand-text-primary: #f8fafc;
-  --cand-text-secondary: #94a3b8;
+  --cand-text-primary: #0f172a;
+  --cand-text-secondary: #475569;
   --cand-text-muted: #64748b;
-  --cand-text-inverse: #090d16;
+  --cand-text-inverse: #ffffff;
 
-  --cand-emerald-fg: #34d399;
-  --cand-emerald-bg: rgba(16, 185, 129, 0.12);
-  --cand-emerald-border: rgba(16, 185, 129, 0.3);
+  --cand-emerald-fg: #0f766e;
+  --cand-emerald-bg: #f0fdfa;
+  --cand-emerald-border: #ccfbf1;
 
-  --cand-blue-fg: #60a5fa;
-  --cand-blue-primary: #3b82f6;
-  --cand-blue-hover: #2563eb;
-  --cand-blue-bg: rgba(59, 130, 246, 0.12);
-  --cand-blue-border: rgba(59, 130, 246, 0.3);
+  --cand-blue-fg: #0369a1;
+  --cand-blue-primary: #0f172a;
+  --cand-blue-hover: #1e293b;
+  --cand-blue-bg: #f8fafc;
+  --cand-blue-border: #e2e8f0;
 
-  --cand-amber-fg: #fbbf24;
-  --cand-amber-bg: rgba(245, 158, 11, 0.12);
-  --cand-amber-border: rgba(245, 158, 11, 0.3);
+  --cand-amber-fg: #b45309;
+  --cand-amber-bg: #fffbeb;
+  --cand-amber-border: #fef3c7;
 
-  --cand-rose-fg: #fb7185;
-  --cand-rose-bg: rgba(244, 63, 94, 0.12);
-  --cand-rose-border: rgba(244, 63, 94, 0.3);
+  --cand-rose-fg: #b91c1c;
+  --cand-rose-bg: #fef2f2;
+  --cand-rose-border: #fee2e2;
 }
 
 .cand-root {
@@ -63,15 +63,15 @@
 .cand-card {
   background-color: var(--cand-card);
   border: 1px solid var(--cand-border-subtle);
-  box-shadow: var(--cand-subpixel-ring);
-  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
 }
 
 .cand-card-elevated {
   background-color: var(--cand-card-elevated);
   border: 1px solid var(--cand-border-subtle);
-  box-shadow: var(--cand-subpixel-ring), 0 8px 24px rgba(0, 0, 0, 0.4);
-  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
 }
 
 /* Neutral Status Pills (Anti-Gaming: No Scores or Deductions) */
@@ -80,7 +80,7 @@
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border-radius: 9999px;
+  border-radius: 6px;
   font-size: 0.75rem; /* 12px */
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -90,26 +90,26 @@
 }
 
 .cand-pill-neutral {
-  background-color: rgba(30, 41, 59, 0.75);
-  color: var(--cand-text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: var(--cand-subpixel-ring);
+  background-color: #f1f5f9;
+  color: var(--cand-text-secondary);
+  border: 1px solid var(--cand-border-subtle);
 }
 
 .cand-pill-active {
-  background-color: var(--cand-emerald-bg);
-  color: var(--cand-emerald-fg);
-  border: 1px solid var(--cand-emerald-border);
+  background-color: #f8fafc;
+  color: var(--cand-text-primary);
+  border: 1px solid var(--cand-border-subtle);
+  font-weight: 600;
 }
 
 .cand-pill-info {
-  background-color: var(--cand-blue-bg);
+  background-color: #f0f9ff;
   color: var(--cand-blue-fg);
-  border: 1px solid var(--cand-blue-border);
+  border: 1px solid #e0f2fe;
 }
 
 .cand-pill-warning {
-  background-color: var(--cand-amber-bg);
+  background-color: #fffbeb;
   color: var(--cand-amber-fg);
   border: 1px solid var(--cand-amber-border);
 }
@@ -120,27 +120,25 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 20px;
-  border-radius: 8px;
-  background-color: var(--cand-blue-primary);
+  padding: 9px 18px;
+  border-radius: 6px;
+  background-color: #0f172a;
   color: #ffffff;
-  font-size: 0.875rem; /* 14px */
+  font-size: 0.8125rem; /* 13px */
   font-weight: 600;
-  border: none;
+  border: 1px solid #0f172a;
   cursor: pointer;
   transition: all 0.15s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .cand-btn-primary:hover:not(:disabled) {
-  background-color: var(--cand-blue-hover);
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+  background-color: #1e293b;
+  border-color: #1e293b;
 }
 
 .cand-btn-primary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
 .cand-btn-outline {
@@ -148,12 +146,11 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 9px 18px;
-  border-radius: 8px;
-  background-color: transparent;
+  padding: 8px 16px;
+  border-radius: 6px;
+  background-color: #ffffff;
   color: var(--cand-text-primary);
-  border: 1px solid var(--cand-border-strong);
-  box-shadow: var(--cand-subpixel-ring);
+  border: 1px solid var(--cand-border-subtle);
   font-size: 0.8125rem; /* 13px */
   font-weight: 500;
   cursor: pointer;
@@ -161,8 +158,8 @@
 }
 
 .cand-btn-outline:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-color: #475569;
+  background-color: #f8fafc;
+  border-color: var(--cand-border-strong);
 }
 
 .cand-btn-danger {
@@ -170,20 +167,19 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 18px;
-  border-radius: 8px;
-  background-color: #ef4444;
+  padding: 8px 16px;
+  border-radius: 6px;
+  background-color: #b91c1c;
   color: #ffffff;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
-  border: none;
+  border: 1px solid #b91c1c;
   cursor: pointer;
   transition: all 0.15s ease;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
 }
 
 .cand-btn-danger:hover:not(:disabled) {
-  background-color: #dc2626;
+  background-color: #991b1b;
 }
 
 /* Affirmative Consent Checkbox Box */
@@ -191,55 +187,53 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 14px 16px;
-  border-radius: 8px;
-  background-color: var(--cand-card-elevated);
+  padding: 12px 14px;
+  border-radius: 6px;
+  background-color: #ffffff;
   border: 1px solid var(--cand-border-subtle);
-  box-shadow: var(--cand-subpixel-ring);
   cursor: pointer;
   user-select: none;
   transition: all 0.15s ease;
 }
 
 .cand-consent-box:hover {
-  border-color: #475569;
+  border-color: var(--cand-border-strong);
+  background-color: #f8fafc;
 }
 
 .cand-consent-box.checked {
-  border-color: var(--cand-blue-primary);
-  background-color: rgba(59, 130, 246, 0.08);
+  border-color: #0f172a;
+  background-color: #f8fafc;
 }
 
 .cand-checkbox {
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
-  border: 1.5px solid #64748b;
-  background-color: #0f172a;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1.5px solid #94a3b8;
+  background-color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: 2px;
   transition: all 0.15s ease;
 }
 
 .cand-checkbox.checked {
-  background-color: var(--cand-blue-primary);
-  border-color: var(--cand-blue-primary);
+  background-color: #0f172a;
+  border-color: #0f172a;
 }
 
 /* Interactive Dock Circle Buttons */
 .cand-dock-btn {
-  width: 46px;
-  height: 46px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  background-color: rgba(30, 41, 59, 0.85);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: var(--cand-subpixel-ring);
-  color: #ffffff;
+  background-color: #ffffff;
+  border: 1px solid var(--cand-border-subtle);
+  color: #0f172a;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -248,30 +242,31 @@
 }
 
 .cand-dock-btn:hover {
-  background-color: rgba(51, 65, 85, 0.95);
-  transform: translateY(-1px);
+  background-color: #f1f5f9;
+  border-color: var(--cand-border-strong);
 }
 
 .cand-dock-btn.active-accent {
-  background-color: var(--cand-blue-primary);
-  border-color: rgba(255, 255, 255, 0.25);
+  background-color: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
 }
 
 .cand-dock-btn.danger {
-  background-color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.6);
-  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+  background-color: #fef2f2;
+  border-color: #fee2e2;
+  color: #b91c1c;
 }
 
 .cand-dock-btn.danger:hover {
-  background-color: #dc2626;
+  background-color: #fee2e2;
 }
 
 /* Audio Level Bar in System Check */
 .cand-audio-meter {
   height: 6px;
   border-radius: 3px;
-  background-color: #1e293b;
+  background-color: #e2e8f0;
   overflow: hidden;
   position: relative;
   width: 100%;
@@ -279,7 +274,7 @@
 
 .cand-audio-fill {
   height: 100%;
-  background: linear-gradient(90deg, #10b981 0%, #3b82f6 70%, #f59e0b 100%);
+  background: #0f172a;
   border-radius: 3px;
   transition: width 0.08s ease-out;
 }

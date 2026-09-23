@@ -1,11 +1,12 @@
 import React from 'react';
-import { CandidateSystemCheck } from '../candidate/CandidateSystemCheck.js';
+import { CandidateJoinScreen } from '../candidate/CandidateJoinScreen.js';
 
 /**
- * Screen 5: Candidate System Check Screen
+ * Screen 5: Candidate System Check / Greenroom Screen
  * Canonical route: /system-check
- * Delegates to CandidateSystemCheck with strict consent gating and audio visualizer.
+ * Unified Google Meet style pre-join screen with hardware verification,
+ * access code input, and inverted affirmative consent.
  */
 export const CandidateSystemCheckScreen: React.FC = () => {
-  return <CandidateSystemCheck nextRoute="/interview/candidate" />;
+  return <CandidateJoinScreen />;
 };
