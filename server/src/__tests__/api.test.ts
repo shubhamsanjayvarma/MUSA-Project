@@ -530,4 +530,78 @@ describe('InterviewShield API Integration Tests', () => {
       expect(dup.scoreChanged).toBe(false);
     });
   });
+
+  describe('3-Tier Health Probes', () => {
+    it('GET /api/health/live should return 200 alive', async () => {
+      const res = await request(app).get('/api/health/live');
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('alive');
+    });
+
+    it('GET /api/health/ready should return 200 with db connected', async () => {
+      const res = await request(app).get('/api/health/ready');
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('ready');
+      expect(res.body.database).toBe('connected');
+    });
+
+    it('GET /api/health/startup should return 200 started', async () => {
+      const res = await request(app).get('/api/health/startup');
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('started');
+    });
+  });
+
+  describe('Audit Report Generation & GDPR Crypto-Shredding', () => {
+    it('GET /api/sessions/:id/report should return comprehensive 4-pillar JSON report', async () => {
+      const res = await request(app)
+        .get(`/api/sessions/${createdSessionId}/report`)
+        .set('Authorization', `Bearer ${demoRecruiterToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.session.id).toBe(createdSessionId);
+      expect(res.body.data.pillars.identity).toBeDefined();
+      expect(res.body.data.pillars.identity.name).toBe('Identity & Deepfake Defense');
+      expect(res.body.data.pillars.gaze.name).toBe('Visual & Gaze Tracking');
+      expect(res.body.data.pillars.audio.name).toBe('Audio-Visual Sync & Voice Integrity');
+      expect(res.body.data.pillars.environment.name).toBe('Screen & Environment Compartmentalization');
+    });
+
+    it('GET /api/sessions/:id/report?format=pdf should generate and stream binary PDF', async () => {
+      const res = await request(app)
+        .get(`/api/sessions/${createdSessionId}/report?format=pdf`)
+        .set('Authorization', `Bearer ${demoRecruiterToken}`)
+        .buffer(true)
+        .parse((res, cb) => {
+          const data: Buffer[] = [];
+          res.on('data', (chunk) => data.push(chunk));
+          res.on('end', () => cb(null, Buffer.concat(data)));
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toBe('application/pdf');
+      expect(res.headers['content-disposition']).toContain(`interviewshield-report-${createdSessionId}.pdf`);
+      // PDF documents start with %PDF-
+      const pdfMagic = (res.body as Buffer).subarray(0, 5).toString('utf-8');
+      expect(pdfMagic).toBe('%PDF-');
+    });
+
+    it('POST /api/sessions/:id/shred should securely erase candidate evidence and anonymize PII', async () => {
+      const res = await request(app)
+        .post(`/api/sessions/${createdSessionId}/shred`)
+        .set('Authorization', `Bearer ${demoRecruiterToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.shredded).toBe(true);
+
+      // Verify DB anonymization
+      const interview = await prisma.interview.findUnique({
+        where: { id: createdInterviewId },
+      });
+      expect(interview?.candidateName).toContain('Erased Candidate');
+      expect(interview?.candidateEmail).toContain('@shredded.local');
+    });
+  });
 });
