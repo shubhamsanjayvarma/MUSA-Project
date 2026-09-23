@@ -144,6 +144,8 @@ export class DetectorOrchestrator {
           'multiple_faces',
           'face_orientation_off',
           'av_mismatch',
+          'face_swap_detected',
+          'unusual_gaze_direction',
         ];
         for (const ev of cycleEvents) {
           if (evidenceEligibleTypes.includes(ev.eventType)) {

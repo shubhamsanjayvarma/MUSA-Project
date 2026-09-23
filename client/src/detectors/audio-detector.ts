@@ -89,9 +89,9 @@ export class AudioDetector implements Detector {
     }
   }
 
-  detect(_input: DetectorInput): DetectionEvent[] {
+  detect(input?: DetectorInput): DetectionEvent[] {
     if (!this.active) return [];
-    const now = Date.now();
+    const now = input?.timestamp || Date.now();
     const events: DetectionEvent[] = [];
 
     // Check if audio context was suspended by browser autoplay policy
@@ -107,7 +107,7 @@ export class AudioDetector implements Detector {
       }
     }
 
-    let isSpeechNow = false;
+    let isSpeechNow = this.currentSpeechState;
     let volume = 0;
 
     if (this.analyser && this.dataArray) {
@@ -119,9 +119,8 @@ export class AudioDetector implements Detector {
       }
       volume = Math.sqrt(sumSquares / this.dataArray.length);
       isSpeechNow = volume > this.speechVolumeThreshold;
+      this.currentSpeechState = isSpeechNow;
     }
-
-    this.currentSpeechState = isSpeechNow;
 
     if (isSpeechNow) {
       this.lastSpeechTimestamp = now;
@@ -142,6 +141,9 @@ export class AudioDetector implements Detector {
       }
     } else {
       this.wasSpeaking = false;
+      if (this.lastSpeechTimestamp > now) {
+        this.lastSpeechTimestamp = now;
+      }
       const silenceDurationMs = now - this.lastSpeechTimestamp;
       const thresholdMs = this.silenceThresholdSeconds * 1000;
       const cooldownMs = this.cooldownSeconds * 1000;
@@ -185,6 +187,8 @@ export class AudioDetector implements Detector {
     this.dataArray = null;
     this.currentSpeechState = false;
     this.wasSpeaking = false;
+    this.lastSpeechTimestamp = 0;
+    this.lastSilenceEventFiredAt = 0;
     this.active = false;
   }
 
@@ -223,5 +227,32 @@ export class AudioDetector implements Detector {
       this.wasSpeaking = false;
     }
     return events;
+  }
+
+  /**
+   * Helper to set silence state for subsequent detect cycles
+   */
+  triggerSilence(durationMs?: number): void {
+    const duration = durationMs ?? (this.silenceThresholdSeconds * 1000 + 1000);
+    const now = Date.now();
+    this.currentSpeechState = false;
+    this.wasSpeaking = false;
+    this.lastSpeechTimestamp = now - duration;
+    this.lastSilenceEventFiredAt = 0;
+  }
+
+  /**
+   * Helper to simulate extended silence in test environments
+   */
+  simulateSilence(durationMs?: number, resetCooldown: boolean = true): DetectionEvent[] {
+    const duration = durationMs ?? (this.silenceThresholdSeconds * 1000 + 1000);
+    const now = Date.now();
+    this.currentSpeechState = false;
+    this.wasSpeaking = false;
+    this.lastSpeechTimestamp = now - duration;
+    if (resetCooldown) {
+      this.lastSilenceEventFiredAt = 0;
+    }
+    return this.detect({ timestamp: now });
   }
 }

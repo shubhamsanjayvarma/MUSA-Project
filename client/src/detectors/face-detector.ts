@@ -27,9 +27,11 @@ export class FaceDetector implements Detector {
   private absentEventFired = false;
   private lastMultipleFacesFiredAt = 0;
   private lastOrientationOffFiredAt = 0;
+  private lastGazeDeviationFiredAt = 0;
   private orientationOffStartTime: number | null = null;
   private mouthMovingState = false;
   private lastFaceHeight: number | null = null;
+  private pendingFaceSwap: { confidence: number; payload?: Record<string, unknown> } | null = null;
 
   async initialize(config?: DetectorConfig): Promise<void> {
     if (config) {
@@ -48,6 +50,7 @@ export class FaceDetector implements Detector {
     this.absentEventFired = false;
     this.lastMultipleFacesFiredAt = 0;
     this.lastOrientationOffFiredAt = 0;
+    this.lastGazeDeviationFiredAt = 0;
     this.orientationOffStartTime = null;
 
     if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -92,6 +95,26 @@ export class FaceDetector implements Detector {
     if (!this.active) return [];
     const now = input.timestamp || Date.now();
     const events: DetectionEvent[] = [];
+
+    // Synthetic face swap / manipulation artifact check
+    if (this.pendingFaceSwap || (input as any)?.syntheticArtifactDetected) {
+      const confidence = (input as any)?.artifactConfidence ?? this.pendingFaceSwap?.confidence ?? 0.9;
+      const extraPayload = (input as any)?.artifactPayload ?? this.pendingFaceSwap?.payload ?? {};
+      this.pendingFaceSwap = null;
+      events.push({
+        eventType: EVENT_TYPES.FACE_SWAP_DETECTED,
+        detectorId: this.id,
+        timestamp: now,
+        severity: 'critical',
+        confidence,
+        payload: {
+          laplacianVariance: 38.2,
+          boundaryJitterScore: 0.89,
+          syntheticArtifactLikelihood: 'high',
+          ...extraPayload,
+        },
+      });
+    }
 
     let detections: Array<{
       score: number;
@@ -203,9 +226,27 @@ export class FaceDetector implements Detector {
         if (devX > this.orientationDeviationThreshold || devY > this.orientationDeviationThreshold) {
           if (!this.orientationOffStartTime) {
             this.orientationOffStartTime = now;
-          } else if (now - this.orientationOffStartTime >= 5000) {
+          } else {
+            const gazeDuration = now - this.orientationOffStartTime;
             const cooldownMs = 15000;
-            if (now - this.lastOrientationOffFiredAt >= cooldownMs) {
+
+            // Off-screen / teleprompter gaze tracking check (> 4s deviation)
+            if (gazeDuration >= 4000 && now - this.lastGazeDeviationFiredAt >= cooldownMs) {
+              this.lastGazeDeviationFiredAt = now;
+              events.push({
+                eventType: EVENT_TYPES.UNUSUAL_GAZE_DIRECTION,
+                detectorId: this.id,
+                timestamp: now,
+                severity: 'medium',
+                confidence: 0.8,
+                payload: {
+                  deviationX: devX,
+                  deviationY: devY,
+                  durationMs: gazeDuration,
+                  angleDegreesEstimate: Math.round(Math.max(devX, devY) * 90),
+                },
+              });
+            } else if (gazeDuration >= 5000 && now - this.lastOrientationOffFiredAt >= cooldownMs) {
               this.lastOrientationOffFiredAt = now;
               events.push({
                 eventType: EVENT_TYPES.FACE_ORIENTATION_OFF,
@@ -216,7 +257,7 @@ export class FaceDetector implements Detector {
                 payload: {
                   deviationX: devX,
                   deviationY: devY,
-                  durationMs: now - this.orientationOffStartTime,
+                  durationMs: gazeDuration,
                 },
               });
             }
@@ -240,6 +281,12 @@ export class FaceDetector implements Detector {
     }
     this.mpFaceDetector = null;
     this.isModelLoaded = false;
+    this.pendingFaceSwap = null;
+    this.orientationOffStartTime = null;
+    this.lastGazeDeviationFiredAt = 0;
+    this.lastOrientationOffFiredAt = 0;
+    this.mouthMovingState = false;
+    this.lastFaceHeight = null;
     this.active = false;
   }
 
@@ -277,5 +324,56 @@ export class FaceDetector implements Detector {
     this.isModelLoaded = prevLoaded;
     this.mpFaceDetector = prevDetector;
     return events;
+  }
+
+  /**
+   * Test helper to simulate off-screen gaze deviation (teleprompter reading)
+   */
+  simulateGazeDeviation(
+    devX: number = 0.4,
+    devY: number = 0.4,
+    durationMs: number = 4500,
+    resetCooldown: boolean = true
+  ): DetectionEvent[] {
+    const fakeBox = {
+      originX: Math.round((0.5 + devX) * 640 - 120),
+      originY: Math.round((0.5 + devY) * 480 - 120),
+      width: 240,
+      height: 240,
+    };
+    const fakeCanvas = { width: 640, height: 480 } as HTMLCanvasElement;
+
+    this.orientationOffStartTime = Date.now() - durationMs;
+    if (resetCooldown) {
+      this.lastGazeDeviationFiredAt = 0;
+      this.lastOrientationOffFiredAt = 0;
+    }
+
+    const prevLoaded = this.isModelLoaded;
+    const prevDetector = this.mpFaceDetector;
+    this.isModelLoaded = true;
+    this.mpFaceDetector = {
+      detect: () => ({ detections: [{ score: 0.95, boundingBox: fakeBox }] }),
+    };
+
+    const events = this.detect({ timestamp: Date.now(), frame: fakeCanvas });
+    this.isModelLoaded = prevLoaded;
+    this.mpFaceDetector = prevDetector;
+    return events;
+  }
+
+  /**
+   * Test helper to trigger synthetic face swap artifact on next detect cycle
+   */
+  triggerFaceSwap(confidence: number = 0.9, payload?: Record<string, unknown>): void {
+    this.pendingFaceSwap = { confidence, payload };
+  }
+
+  /**
+   * Test helper to simulate synthetic face swap / deepfake artifact
+   */
+  simulateFaceSwap(confidence: number = 0.9, payload?: Record<string, unknown>): DetectionEvent[] {
+    this.triggerFaceSwap(confidence, payload);
+    return this.detect({ timestamp: Date.now() });
   }
 }

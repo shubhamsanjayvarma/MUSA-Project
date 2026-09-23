@@ -104,7 +104,7 @@ export class ScreenShareDetector implements Detector {
     });
   }
 
-  detect(_input: DetectorInput): DetectionEvent[] {
+  detect(_input?: DetectorInput): DetectionEvent[] {
     if (!this.active) return [];
 
     // Periodic check to detect newly acquired screen stream if not attached yet

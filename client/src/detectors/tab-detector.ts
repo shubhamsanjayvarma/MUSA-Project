@@ -55,7 +55,7 @@ export class TabDetector implements Detector {
     this.active = true;
   }
 
-  detect(_input: DetectorInput): DetectionEvent[] {
+  detect(_input?: DetectorInput): DetectionEvent[] {
     if (!this.active) return [];
     if (this.pendingEvents.length === 0) return [];
     const events = [...this.pendingEvents];

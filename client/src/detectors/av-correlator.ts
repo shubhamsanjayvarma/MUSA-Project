@@ -58,10 +58,10 @@ export class AVCorrelator implements Detector {
     this.active = true;
   }
 
-  detect(_input: DetectorInput): DetectionEvent[] {
+  detect(input?: DetectorInput): DetectionEvent[] {
     if (!this.active || !this.faceDetector || !this.audioDetector) return [];
 
-    const now = Date.now();
+    const now = input?.timestamp || Date.now();
     const events: DetectionEvent[] = [];
 
     const isSpeaking = this.audioDetector.isSpeechLikely;
@@ -108,11 +108,21 @@ export class AVCorrelator implements Detector {
     this.faceDetector = null;
     this.audioDetector = null;
     this.mismatchStartTime = null;
+    this.lastMismatchFiredAt = 0;
     this.active = false;
   }
 
   get isActive(): boolean {
     return this.active;
+  }
+
+  /**
+   * Helper to set mismatch state for subsequent detect cycles
+   */
+  triggerMismatch(durationMs: number = 5500): void {
+    const now = Date.now();
+    this.mismatchStartTime = now - durationMs;
+    this.lastMismatchFiredAt = 0;
   }
 
   /**
