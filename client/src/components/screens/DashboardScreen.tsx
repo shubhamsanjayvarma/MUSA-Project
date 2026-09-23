@@ -9,6 +9,7 @@ import {
   Copy,
   Check,
   UserCheck,
+  Activity,
 } from 'lucide-react';
 import { appStore, StoredInterview } from '../../services/store.js';
 import '../../styles/interview-shield.css';
@@ -60,6 +61,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     navigate(`/report?code=${interview.joinCode}`);
   };
 
+  const handleOpenCommandCenter = (interview: StoredInterview) => {
+    appStore.setActiveSession(interview);
+    setActiveMenuId(null);
+    navigate(`/command-center?code=${interview.joinCode}`);
+  };
+
   return (
     <div style={{ maxWidth: '1040px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '28px' }}>
       {/* Welcome Banner Header */}
@@ -97,6 +104,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
         {/* Quick Action Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            onClick={() => navigate('/command-center')}
+            className="is-btn is-btn-outline"
+            id="btn-command-center"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Activity size={16} color="#3b82f6" />
+            <span>Command Center</span>
+          </button>
+
           <button
             onClick={onNewInterviewClick}
             className="is-btn is-btn-primary"
@@ -290,6 +307,28 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                         >
                           <FileText size={14} color="#64748b" />
                           <span>View Report</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleOpenCommandCenter(item)}
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px 10px',
+                            borderRadius: '6px',
+                            fontSize: '0.8125rem',
+                            color: 'var(--is-text-primary)',
+                            border: 'none',
+                            background: 'transparent',
+                            cursor: 'pointer',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--is-surface-muted)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                        >
+                          <Activity size={14} color="#3b82f6" />
+                          <span>Command Center</span>
                         </button>
 
                         <button

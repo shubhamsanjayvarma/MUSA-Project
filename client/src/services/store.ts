@@ -181,6 +181,40 @@ export const appStore = {
     return DEFAULT_INTERVIEWS[0];
   },
 
+  // Inverted Affirmative Consent State Management
+  // Default is strictly FALSE: tracking/devices cannot run until explicit acceptance
+  hasConsent(sessionId?: string): boolean {
+    const key = sessionId ? `is_consent_${sessionId}` : 'is_consent_active';
+    return sessionStorage.getItem(key) === 'true';
+  },
+
+  setConsent(agreed: boolean, sessionId?: string): void {
+    const key = sessionId ? `is_consent_${sessionId}` : 'is_consent_active';
+    const tsKey = sessionId ? `is_consent_ts_${sessionId}` : 'is_consent_ts_active';
+    if (agreed) {
+      sessionStorage.setItem(key, 'true');
+      sessionStorage.setItem(tsKey, new Date().toISOString());
+    } else {
+      sessionStorage.removeItem(key);
+      sessionStorage.removeItem(tsKey);
+    }
+  },
+
+  clearConsent(sessionId?: string): void {
+    const key = sessionId ? `is_consent_${sessionId}` : 'is_consent_active';
+    const tsKey = sessionId ? `is_consent_ts_${sessionId}` : 'is_consent_ts_active';
+    sessionStorage.removeItem(key);
+    sessionStorage.removeItem(tsKey);
+  },
+
+  getConsentDetails(sessionId?: string): { agreed: boolean; timestamp: string | null } {
+    const key = sessionId ? `is_consent_${sessionId}` : 'is_consent_active';
+    const tsKey = sessionId ? `is_consent_ts_${sessionId}` : 'is_consent_ts_active';
+    const agreed = sessionStorage.getItem(key) === 'true';
+    const timestamp = sessionStorage.getItem(tsKey);
+    return { agreed, timestamp };
+  },
+
   // Candidates
   getCandidates(): CandidateItem[] {
     const raw = localStorage.getItem('is_candidates');

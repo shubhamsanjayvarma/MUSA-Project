@@ -10,6 +10,7 @@ import {
   Search,
   Bell,
   Sparkles,
+  Activity,
 } from 'lucide-react';
 import '../../styles/interview-shield.css';
 
@@ -75,6 +76,16 @@ export const RecruiterLayout: React.FC<RecruiterLayoutProps> = ({
           >
             <BarChart3 size={18} />
             <span>Reports</span>
+          </NavLink>
+
+          <NavLink
+            to="/command-center"
+            className={({ isActive }) =>
+              `is-nav-item ${isActive || location.pathname.startsWith('/command-center') ? 'active' : ''}`
+            }
+          >
+            <Activity size={18} />
+            <span>Command Center</span>
           </NavLink>
 
           <NavLink

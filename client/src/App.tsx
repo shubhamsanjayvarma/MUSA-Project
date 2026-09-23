@@ -21,8 +21,6 @@ import {
   Power,
   ShieldCheck,
   Eye,
-  FileText,
-  HelpCircle,
 } from 'lucide-react';
 import {
   authApi,
@@ -48,6 +46,12 @@ import {
   AudioDetector,
   AVCorrelator,
 } from './detectors/index.js';
+import {
+  RecruiterCommandCenter,
+  RadialScoreGauge,
+  ReviewPanel,
+  DownloadReportButton,
+} from './components/recruiter/index.js';
 
 // Header Component
 const Header: React.FC = () => {
@@ -592,12 +596,6 @@ const SessionDetailPage: React.FC = () => {
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItemData[]>([]);
   const [review, setReview] = useState<RecruiterReviewData | null>(null);
 
-  // Review Form State
-  const [reviewDecision, setReviewDecision] = useState<'pass' | 'flag' | 'inconclusive' | null>(null);
-  const [reviewNotes, setReviewNotes] = useState('');
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [reviewFeedback, setReviewFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
   // Filtering & Evidence Modal
   const [severityFilter, setSeverityFilter] = useState<'all' | 'medium' | 'high' | 'critical'>('all');
   const [activeEvidenceUrl, setActiveEvidenceUrl] = useState<string | null>(null);
@@ -618,8 +616,6 @@ const SessionDetailPage: React.FC = () => {
       setEvidenceItems(evd);
       if (rev) {
         setReview(rev);
-        setReviewDecision(rev.decision);
-        setReviewNotes(rev.notes || '');
       }
     } catch (err) {
       console.error('Error fetching session sub-resources:', err);
@@ -648,33 +644,6 @@ const SessionDetailPage: React.FC = () => {
 
     fetchDetail();
   }, [interviewId]);
-
-  const handleReviewSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeSessionId || !reviewDecision) return;
-    setIsSubmittingReview(true);
-    setReviewFeedback(null);
-
-    try {
-      const savedReview = await sessionApi.submitReview(activeSessionId, {
-        decision: reviewDecision,
-        notes: reviewNotes,
-      });
-      setReview(savedReview);
-      setReviewFeedback({
-        type: 'success',
-        message: `Review submitted: ${savedReview.decision.toUpperCase()} recorded successfully.`,
-      });
-    } catch (err: unknown) {
-      const errorObj = err as Error;
-      setReviewFeedback({
-        type: 'error',
-        message: errorObj.message || 'Failed to submit review',
-      });
-    } finally {
-      setIsSubmittingReview(false);
-    }
-  };
 
   const formatEventType = (type: string) => {
     switch (type) {
@@ -771,6 +740,27 @@ const SessionDetailPage: React.FC = () => {
             Candidate: <strong style={{ color: 'var(--color-text)' }}>{interview.candidateName}</strong> ({interview.candidateEmail})
           </p>
         </div>
+
+        {activeSessionId && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Link
+              to={`/command-center?code=${interview.joinToken || activeSessionId}`}
+              className="btn btn-outline"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8125rem' }}
+            >
+              <Activity size={14} color="#3b82f6" />
+              <span>Command Center</span>
+            </Link>
+            <DownloadReportButton
+              sessionId={activeSessionId}
+              candidateName={interview.candidateName}
+              interviewTitle={interview.title}
+              integrityScore={score}
+              riskState={riskState}
+              variant="primary"
+            />
+          </div>
+        )}
       </div>
 
       {/* Main Grid: Left side metrics & human review, Right side timeline */}
@@ -784,19 +774,13 @@ const SessionDetailPage: React.FC = () => {
             </h3>
             {latestSession ? (
               <>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-sm)' }}>
-                  <span style={{ fontSize: '3.25rem', fontWeight: 700, fontFamily: 'var(--font-mono)', color: score >= 80 ? 'var(--color-normal)' : score >= 60 ? 'var(--color-attention)' : score >= 40 ? 'var(--color-suspicious)' : 'var(--color-high-risk)' }}>
-                    {score}
-                  </span>
-                  <span style={{ color: 'var(--color-text-secondary)', fontSize: '1.125rem' }}>/ 100</span>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <span className={`badge badge-${riskState === 'normal' ? 'normal' : riskState === 'attention' ? 'attention' : riskState === 'suspicious' ? 'suspicious' : 'high-risk'}`}>
-                    Risk State: {riskState.toUpperCase()}
-                  </span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                    Events: {events.length}
-                  </span>
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0' }}>
+                  <RadialScoreGauge
+                    score={score}
+                    size="compact"
+                    showBadge={true}
+                    showTicks={false}
+                  />
                 </div>
                 <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', lineHeight: 1.6, borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
                   {snapshots.length > 0 ? snapshots[snapshots.length - 1].explanation : 'Session initialized with baseline integrity score.'}
@@ -810,140 +794,11 @@ const SessionDetailPage: React.FC = () => {
           </div>
 
           {/* HUMAN RECRUITER REVIEW PANEL */}
-          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <FileText size={16} color="var(--color-primary)" /> Recruiter Review Decision
-              </h3>
-              {review && (
-                <span className="badge badge-normal" style={{ fontSize: '0.6875rem' }}>
-                  Reviewed
-                </span>
-              )}
-            </div>
-
-            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-              AI telemetry provides advisory signals. Human recruiters make all final candidate decisions.
-            </p>
-
-            {reviewFeedback && (
-              <div
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: reviewFeedback.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                  border: `1px solid ${reviewFeedback.type === 'success' ? 'var(--color-normal)' : 'var(--color-high-risk)'}`,
-                  fontSize: '0.8125rem',
-                  color: reviewFeedback.type === 'success' ? '#86efac' : '#fca5a5',
-                }}
-              >
-                {reviewFeedback.message}
-              </div>
-            )}
-
-            <form onSubmit={handleReviewSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
-                VERDICT
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => setReviewDecision('pass')}
-                  style={{
-                    padding: '8px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: `1px solid ${reviewDecision === 'pass' ? 'var(--color-normal)' : 'var(--color-border)'}`,
-                    backgroundColor: reviewDecision === 'pass' ? 'rgba(34, 197, 94, 0.15)' : 'var(--color-bg)',
-                    color: reviewDecision === 'pass' ? 'var(--color-normal)' : 'var(--color-text)',
-                    fontWeight: 600,
-                    fontSize: '0.75rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <CheckCircle size={14} /> PASS
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setReviewDecision('flag')}
-                  style={{
-                    padding: '8px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: `1px solid ${reviewDecision === 'flag' ? 'var(--color-suspicious)' : 'var(--color-border)'}`,
-                    backgroundColor: reviewDecision === 'flag' ? 'rgba(249, 115, 22, 0.15)' : 'var(--color-bg)',
-                    color: reviewDecision === 'flag' ? 'var(--color-suspicious)' : 'var(--color-text)',
-                    fontWeight: 600,
-                    fontSize: '0.75rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <AlertTriangle size={14} /> FLAG
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setReviewDecision('inconclusive')}
-                  style={{
-                    padding: '8px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: `1px solid ${reviewDecision === 'inconclusive' ? '#94a3b8' : 'var(--color-border)'}`,
-                    backgroundColor: reviewDecision === 'inconclusive' ? 'rgba(148, 163, 184, 0.15)' : 'var(--color-bg)',
-                    color: reviewDecision === 'inconclusive' ? '#f8fafc' : 'var(--color-text)',
-                    fontWeight: 600,
-                    fontSize: '0.75rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <HelpCircle size={14} /> INCONCL.
-                </button>
-              </div>
-
-              <div style={{ marginTop: '6px' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
-                  REVIEWER NOTES
-                </label>
-                <textarea
-                  rows={3}
-                  value={reviewNotes}
-                  onChange={(e) => setReviewNotes(e.target.value)}
-                  placeholder="Record observations, anomalies inspected, and reasons for this decision..."
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    backgroundColor: 'var(--color-bg)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-sm)',
-                    color: 'var(--color-text)',
-                    fontSize: '0.8125rem',
-                    resize: 'vertical',
-                  }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={!reviewDecision || isSubmittingReview}
-                className="btn btn-primary"
-                style={{ width: '100%', marginTop: '6px', fontSize: '0.8125rem', padding: '8px' }}
-              >
-                {isSubmittingReview ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                {review ? 'Update Decision' : 'Submit Decision'}
-              </button>
-
-              {review && (
-                <p style={{ fontSize: '0.6875rem', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
-                  Last reviewed: {new Date(review.reviewedAt).toLocaleString()}
-                </p>
-              )}
-            </form>
-          </div>
+          <ReviewPanel
+            sessionId={activeSessionId || interview.id}
+            initialReview={review}
+            onReviewSubmitted={(r) => setReview(r)}
+          />
 
           {/* Risk Progression Ledger */}
           {snapshots.length > 0 && (
@@ -1727,6 +1582,9 @@ export const App: React.FC = () => {
         <Route path="/reports" element={<RecruiterLayout><ReportsAnalyticsScreen /></RecruiterLayout>} />
         <Route path="/analytics" element={<RecruiterLayout><ReportsAnalyticsScreen /></RecruiterLayout>} />
         <Route path="/report" element={<RecruiterLayout><InterviewReportScreen /></RecruiterLayout>} />
+        <Route path="/command-center" element={<RecruiterLayout><RecruiterCommandCenter /></RecruiterLayout>} />
+        <Route path="/recruiter/command-center" element={<RecruiterLayout><RecruiterCommandCenter /></RecruiterLayout>} />
+        <Route path="/session/:sessionId/command-center" element={<RecruiterLayout><RecruiterCommandCenter /></RecruiterLayout>} />
         <Route path="/settings" element={<RecruiterLayout><SettingsScreen /></RecruiterLayout>} />
         <Route path="/profile" element={<RecruiterLayout><ProfileScreen /></RecruiterLayout>} />
         <Route path="/pricing" element={<PricingScreen />} />

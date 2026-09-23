@@ -34,8 +34,8 @@ export const SystemCheck: React.FC<SystemCheckProps> = ({
   candidateName,
   interviewTitle,
 }) => {
-  const [cameraStatus, setCameraStatus] = useState<CheckStatus>('CHECKING');
-  const [micStatus, setMicStatus] = useState<CheckStatus>('CHECKING');
+  const [cameraStatus, setCameraStatus] = useState<CheckStatus>('PENDING');
+  const [micStatus, setMicStatus] = useState<CheckStatus>('PENDING');
   const [screenStatus, setScreenStatus] = useState<CheckStatus>('PENDING');
   const [browserStatus, setBrowserStatus] = useState<CheckStatus>('CHECKING');
 
@@ -43,6 +43,7 @@ export const SystemCheck: React.FC<SystemCheckProps> = ({
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Inverted Affirmative Consent: default FALSE
   const [consentChecked, setConsentChecked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -57,8 +58,9 @@ export const SystemCheck: React.FC<SystemCheckProps> = ({
     }
   }, []);
 
-  // Run camera & mic check
+  // Run camera & mic check ONLY after explicit affirmative consent
   const checkCameraAndMic = async () => {
+    if (!consentChecked) return;
     setCameraStatus('CHECKING');
     setMicStatus('CHECKING');
     setErrorMessage(null);
@@ -93,9 +95,12 @@ export const SystemCheck: React.FC<SystemCheckProps> = ({
     }
   };
 
+  // Strictly trigger hardware checks ONLY when affirmative consent is accepted
   useEffect(() => {
-    checkCameraAndMic();
-  }, []);
+    if (consentChecked) {
+      checkCameraAndMic();
+    }
+  }, [consentChecked]);
 
   // Screen share check (requires user interaction gesture)
   const requestScreenShare = async () => {

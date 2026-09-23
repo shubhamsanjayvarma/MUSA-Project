@@ -10,23 +10,12 @@ import {
   Maximize2,
   Minimize2,
   Clock,
-  ShieldAlert,
-  AlertTriangle,
   Send,
   Layers,
-  Plus,
 } from 'lucide-react';
 import { appStore } from '../../services/store.js';
+import { RadialScoreGauge, IncidentTimeline, IncidentEvent } from '../recruiter/index.js';
 import '../../styles/interview-shield.css';
-
-interface AnomalyEvent {
-  id: string;
-  time: string;
-  title: string;
-  detail?: string;
-  severity: 'warning' | 'critical';
-  icon: 'tab' | 'faces' | 'screen' | 'face_lost' | 'av_mismatch';
-}
 
 export const InInterviewRecruiterScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -38,7 +27,6 @@ export const InInterviewRecruiterScreen: React.FC = () => {
 
   // Tabs: 'monitoring' (Screen 8) | 'events' (Screen 9) | 'chat'
   const [activeTab, setActiveTab] = useState<'monitoring' | 'events' | 'chat'>(initialTab);
-  const [eventFilter, setEventFilter] = useState<'all' | 'warnings' | 'critical'>('all');
 
   const [micActive, setMicActive] = useState(true);
   const [videoActive, setVideoActive] = useState(true);
@@ -54,44 +42,68 @@ export const InInterviewRecruiterScreen: React.FC = () => {
   const [newMsg, setNewMsg] = useState('');
 
   // Events list
-  const [events, setEvents] = useState<AnomalyEvent[]>([
+  const [events] = useState<IncidentEvent[]>([
     {
       id: 'e1',
+      sequenceNumber: 1,
       time: '10:05 AM',
+      eventType: 'tab_hidden',
+      detectorId: 'tab-blur-detector',
       title: 'Tab switched',
       detail: '1 min 12 sec',
-      severity: 'warning',
-      icon: 'tab',
+      severity: 'medium',
+      scoreBefore: 100,
+      scoreAfter: 95,
+      hasEvidence: true,
+      evidenceUrl: '/candidate_aarav.jpg',
     },
     {
       id: 'e2',
+      sequenceNumber: 2,
       time: '10:08 AM',
+      eventType: 'multiple_faces',
+      detectorId: 'vision-face-detector',
       title: 'Multiple faces detected',
       detail: '2 people seen',
       severity: 'critical',
-      icon: 'faces',
+      scoreBefore: 95,
+      scoreAfter: 78,
+      hasEvidence: true,
+      evidenceUrl: '/candidate_aarav.jpg',
     },
     {
       id: 'e3',
+      sequenceNumber: 3,
       time: '10:12 AM',
+      eventType: 'screen_share_stopped',
+      detectorId: 'screen-detector',
       title: 'Screen sharing stopped',
       severity: 'critical',
-      icon: 'screen',
+      scoreBefore: 78,
+      scoreAfter: 72,
     },
     {
       id: 'e4',
+      sequenceNumber: 4,
       time: '10:15 AM',
+      eventType: 'face_absent',
+      detectorId: 'vision-face-detector',
       title: 'Face not detected',
       detail: '8 sec',
-      severity: 'warning',
-      icon: 'face_lost',
+      severity: 'medium',
+      scoreBefore: 72,
+      scoreAfter: 72,
     },
     {
       id: 'e5',
+      sequenceNumber: 5,
       time: '10:18 AM',
+      eventType: 'av_mismatch',
+      detectorId: 'av-correlator',
       title: 'Audio-visual mismatch',
-      severity: 'warning',
-      icon: 'av_mismatch',
+      severity: 'medium',
+      scoreBefore: 72,
+      scoreAfter: 72,
     },
   ]);
 
@@ -111,12 +123,6 @@ export const InInterviewRecruiterScreen: React.FC = () => {
       .toString()
       .padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-
-  const filteredEvents = events.filter((ev) => {
-    if (eventFilter === 'warnings') return ev.severity === 'warning';
-    if (eventFilter === 'critical') return ev.severity === 'critical';
-    return true;
-  });
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,18 +149,6 @@ export const InInterviewRecruiterScreen: React.FC = () => {
         },
       ]);
     }, 1200);
-  };
-
-  const handleSimulateEvent = () => {
-    const newEv: AnomalyEvent = {
-      id: `e-${Date.now()}`,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      title: 'Auditory background anomaly',
-      detail: 'Secondary voice detected',
-      severity: 'warning',
-      icon: 'av_mismatch',
-    };
-    setEvents([newEv, ...events]);
   };
 
   const toggleFullscreen = () => {
@@ -569,65 +563,20 @@ export const InInterviewRecruiterScreen: React.FC = () => {
               <div
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: '20px',
-                  padding: '20px',
+                  justifyContent: 'center',
+                  padding: '16px',
                   borderRadius: '12px',
                   border: '1px solid var(--is-border)',
                   backgroundColor: '#ffffff',
                 }}
               >
-                {/* Circular Gauge Graphic (92/100) */}
-                <div style={{ position: 'relative', width: '84px', height: '84px', flexShrink: 0 }}>
-                  <svg width="84" height="84" viewBox="0 0 100 100">
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="42"
-                      fill="transparent"
-                      stroke="#e2e8f0"
-                      strokeWidth="9"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="42"
-                      fill="transparent"
-                      stroke="#16a34a"
-                      strokeWidth="9"
-                      strokeDasharray="264"
-                      strokeDashoffset="21" /* 92% fill */
-                      strokeLinecap="round"
-                      transform="rotate(-90 50 50)"
-                    />
-                  </svg>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--is-text-primary)' }}>
-                      92
-                    </span>
-                    <span style={{ fontSize: '0.65rem', color: 'var(--is-text-muted)', marginTop: '-2px' }}>
-                      /100
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--is-success-text)' }}>
-                    Good
-                  </div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--is-text-secondary)', marginTop: '2px' }}>
-                    No critical issues
-                  </div>
-                </div>
+                <RadialScoreGauge
+                  score={92}
+                  size="compact"
+                  showBadge={true}
+                  showTicks={false}
+                  subtext="Real-time multi-signal telemetry"
+                />
               </div>
             </div>
           </div>
@@ -636,113 +585,13 @@ export const InInterviewRecruiterScreen: React.FC = () => {
         {/* Tab 2: EVENTS (Screen 9) */}
         {activeTab === 'events' && (
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
-            {/* Filter Pills Header */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '16px 20px',
-                borderBottom: '1px solid var(--is-border)',
-                backgroundColor: '#fafbfc',
-              }}
-            >
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => setEventFilter('all')}
-                  className={`is-pill ${eventFilter === 'all' ? 'is-pill-upcoming' : ''}`}
-                  style={{
-                    border: eventFilter === 'all' ? '1px solid var(--is-primary)' : '1px solid var(--is-border)',
-                    background: eventFilter === 'all' ? 'var(--is-primary-light)' : '#ffffff',
-                    cursor: 'pointer',
-                    color: eventFilter === 'all' ? 'var(--is-primary)' : 'var(--is-text-secondary)',
-                  }}
-                  id="filter-all"
-                >
-                  All
-                </button>
-
-                <button
-                  onClick={() => setEventFilter('warnings')}
-                  className={`is-pill ${eventFilter === 'warnings' ? 'is-pill-warning' : ''}`}
-                  style={{
-                    border: eventFilter === 'warnings' ? '1px solid var(--is-warning)' : '1px solid var(--is-border)',
-                    background: eventFilter === 'warnings' ? 'var(--is-warning-bg)' : '#ffffff',
-                    cursor: 'pointer',
-                    color: eventFilter === 'warnings' ? 'var(--is-warning-text)' : 'var(--is-text-secondary)',
-                  }}
-                  id="filter-warnings"
-                >
-                  Warnings
-                </button>
-
-                <button
-                  onClick={() => setEventFilter('critical')}
-                  className={`is-pill ${eventFilter === 'critical' ? 'is-pill-critical' : ''}`}
-                  style={{
-                    border: eventFilter === 'critical' ? '1px solid var(--is-danger)' : '1px solid var(--is-border)',
-                    background: eventFilter === 'critical' ? 'var(--is-danger-bg)' : '#ffffff',
-                    cursor: 'pointer',
-                    color: eventFilter === 'critical' ? 'var(--is-danger-text)' : 'var(--is-text-secondary)',
-                  }}
-                  id="filter-critical"
-                >
-                  Critical
-                </button>
-              </div>
-
-              {/* Functional button to trigger new simulation event */}
-              <button
-                onClick={handleSimulateEvent}
-                className="is-btn is-btn-outline"
-                style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                title="Simulate Anomaly"
-              >
-                <Plus size={12} /> Test
-              </button>
-            </div>
-
-            {/* Event List Feed */}
-            <div style={{ display: 'flex', flexDirection: 'column', padding: '12px 16px', gap: '8px' }}>
-              {filteredEvents.map((ev) => (
-                <div
-                  key={ev.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                    padding: '12px 14px',
-                    borderRadius: '8px',
-                    backgroundColor: ev.severity === 'critical' ? '#fff5f5' : '#fffbeb',
-                    border: `1px solid ${ev.severity === 'critical' ? '#fed7d7' : '#feebc8'}`,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                    <div style={{ marginTop: '2px' }}>
-                      {ev.severity === 'critical' ? (
-                        <ShieldAlert size={16} color="var(--is-danger)" />
-                      ) : (
-                        <AlertTriangle size={16} color="var(--is-warning)" />
-                      )}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--is-text-primary)' }}>
-                        {ev.title}
-                      </div>
-                      {ev.detail && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--is-text-secondary)', marginTop: '2px' }}>
-                          {ev.detail}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <span style={{ fontSize: '0.75rem', color: 'var(--is-text-muted)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                    {ev.time}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <IncidentTimeline
+              events={events}
+              maxHeight="calc(100vh - 120px)"
+              virtualizeThreshold={50}
+              showFilters={true}
+              showSearch={true}
+            />
           </div>
         )}
 
