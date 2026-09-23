@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink, Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Shield,
   Home,
@@ -11,7 +11,10 @@ import {
   Bell,
   ArrowUpRight,
   Activity,
+  LogOut,
 } from 'lucide-react';
+import { authApi } from '../../services/api.js';
+import { auth, signOut } from '../../services/firebase.js';
 import '../../styles/interview-shield.css';
 
 interface RecruiterLayoutProps {
@@ -24,8 +27,60 @@ export const RecruiterLayout: React.FC<RecruiterLayoutProps> = ({
   children,
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const [user, setUser] = useState<{ name: string; email: string }>(() => {
+    try {
+      const stored = localStorage.getItem('interviewshield_user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.name || parsed.email) {
+          return {
+            name: parsed.name || 'Recruiter',
+            email: parsed.email || 'recruiter@demo.interviewshield.dev',
+          };
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return { name: 'Rahul Sharma', email: 'rahul@company.com' };
+  });
+
+  useEffect(() => {
+    const updateUser = () => {
+      try {
+        const stored = localStorage.getItem('interviewshield_user');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.name || parsed.email) {
+            setUser({
+              name: parsed.name || 'Recruiter',
+              email: parsed.email || 'recruiter@demo.interviewshield.dev',
+            });
+          }
+        }
+      } catch {
+        // fallback
+      }
+    };
+    updateUser();
+    window.addEventListener('storage', updateUser);
+    return () => window.removeEventListener('storage', updateUser);
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch {
+      // Ignore signOut errors
+    }
+    await authApi.logout();
+    localStorage.removeItem('interviewshield_user');
+    navigate('/login');
+  };
 
   const notifications = [
     { id: 1, title: 'Session Completed', time: '10 mins ago', desc: 'Aarav Mehta completed Frontend Dev interview' },
@@ -97,24 +152,54 @@ export const RecruiterLayout: React.FC<RecruiterLayoutProps> = ({
           </NavLink>
         </nav>
 
-        {/* Sidebar Footer — Recruiter Profile */}
-        <div className="is-sidebar-footer">
+        {/* Sidebar Footer — Recruiter Profile & Logout */}
+        <div className="is-sidebar-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px' }}>
           <Link
             to="/profile"
             className="is-user-profile-badge"
-            style={{ textDecoration: 'none', color: 'inherit' }}
-            title="View Profile / Account"
+            style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}
+            title={`View Profile (${user.name})`}
           >
-            <div className="is-avatar-circle avatar-r">R</div>
+            <div className="is-avatar-circle avatar-r">
+              {(user.name[0] || 'R').toUpperCase()}
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
               <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--is-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Rahul Sharma
+                {user.name}
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--is-text-muted)' }}>
                 Recruiter
               </span>
             </div>
           </Link>
+          <button
+            onClick={handleLogout}
+            title="Sign Out"
+            aria-label="Sign Out"
+            id="sidebar-signout-btn"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#94a3b8',
+              padding: '6px',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'color 0.2s, background-color 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#ef4444';
+              e.currentTarget.style.backgroundColor = '#fef2f2';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#94a3b8';
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       </aside>
 
@@ -196,16 +281,40 @@ export const RecruiterLayout: React.FC<RecruiterLayoutProps> = ({
               )}
             </div>
 
-            {/* Profile Avatar Pill */}
-            <Link
-              to="/profile"
-              style={{ textDecoration: 'none' }}
-              title="Rahul Sharma Account"
-            >
-              <div className="is-avatar-circle avatar-r" style={{ width: '36px', height: '36px' }}>
-                R
-              </div>
-            </Link>
+            {/* Profile Avatar Pill & Sign Out Button */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Link
+                to="/profile"
+                style={{ textDecoration: 'none' }}
+                title={`${user.name} Account`}
+              >
+                <div className="is-avatar-circle avatar-r" style={{ width: '36px', height: '36px' }}>
+                  {(user.name[0] || 'R').toUpperCase()}
+                </div>
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="is-btn is-btn-outline"
+                id="header-signout-btn"
+                style={{
+                  fontSize: '0.8125rem',
+                  padding: '6px 12px',
+                  borderColor: '#fee2e2',
+                  backgroundColor: '#fef2f2',
+                  color: '#ef4444',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  borderRadius: '6px',
+                }}
+                title="Sign Out to Login Page"
+              >
+                <LogOut size={13} />
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
         </header>
 
