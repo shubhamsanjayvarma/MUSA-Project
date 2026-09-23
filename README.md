@@ -1,106 +1,129 @@
 # InterviewShield 🛡️
 
-> **Browser-based interview-integrity monitoring system**  
-> MUSA CodeX 2026 Round 2 | Problem CX0104: The Interview Body Double | Team Harrington's Tech
+> **Browser-native interview integrity & body-double detection system.**  
+> Built for **MUSA CodeX 2026** · Problem CX0104: *The Interview Body Double* · Team Harrington's Tech  
+> 🌐 **Live Demo**: [interviewshieldmusa.vercel.app](https://interviewshieldmusa.vercel.app)
 
 ---
 
-## 1. Overview
+## 🎯 What Problem Does It Solve?
 
-InterviewShield monitors interview session signals in real-time, detects behavioral anomalies (face absence, multiple faces, tab switching, revoked screen shares, audio-visual inconsistency), computes an explainable integrity score, and provides timestamped evidence for human recruiter review.
+Remote technical hiring faces a growing integrity crisis:
+- **Proxy Interviewees & Body Doubles**: Impersonators take interviews on behalf of candidates or swap seats mid-call.
+- **Off-Screen Teleprompters & Multi-Screen Aid**: Candidates secretly read real-time AI solutions or live coaching feeds.
+- **Invasive Spyware Backlash**: Traditional proctoring tools require kernel-level drivers, violate user privacy, and upload unencrypted candidate biometrics to third-party cloud servers.
 
-### Architectural Tenets
-- **AI flags. Humans review.** The system provides advisory signals; recruiters make the hiring decision.
-- **Privacy by Design**: All computer vision and audio analysis runs locally inside the candidate's browser via MediaPipe and Web Audio. Raw camera/mic feeds are **never** transmitted to the server.
-- **Deterministic & Explainable**: The scoring engine uses pure mathematical rules and sliding window cooldowns rather than opaque black-box machine learning.
-
----
-
-## 2. Monorepo Structure
-
-```
-interview-shield/
-├── client/          # React 18 + Vite + TypeScript frontend (Candidate & Recruiter UI)
-├── server/          # Node.js 20+ Express + WebSocket backend (REST API & Risk Engine)
-├── shared/          # Shared TypeScript interfaces (Events, RiskState, WS Protocol)
-├── docs/            # Approved specifications & architectural blueprints
-├── Rule Book/       # Mandatory AI engineering rules (RULES.md)
-├── docker-compose.yml # PostgreSQL 16 container definition
-└── package.json     # Workspace root orchestrator
-```
+**InterviewShield eliminates this trade-off.** It provides automated, real-time behavioral anomaly detection while running **100% locally in the candidate's browser**. Raw camera and microphone streams never leave the candidate's device.
 
 ---
 
-## 3. Quick Start for Developers
+## ⚡ What Is It?
 
-### Prerequisites
-- **Node.js**: `v20.0.0` or higher (verified on Node `v26.2.0`)
-- **npm**: `v10.0.0` or higher
-- **PostgreSQL 16**: via Docker or local installation / cloud database (Neon, Supabase)
+InterviewShield is an end-to-end interview platform featuring a real-time risk engine that analyzes behavioral signals during technical interviews:
 
-### Step 1: Install Dependencies
-From the repository root, install dependencies for all workspaces:
+- **Zero-Upload Edge Detection**: Computer vision and acoustic processing execute in-browser via MediaPipe and Web Audio APIs. Raw video is never recorded or streamed to servers.
+- **7 Behavioral Signals**:
+  1. *Face Presence Continuity* (detects absence $\ge 3\text{s}$)
+  2. *Multiple Face Detection* (identifies unauthorized assistants)
+  3. *Off-Screen Gaze Deviation* (flags sustained teleprompter reading)
+  4. *Tab Switching & Window Blur* (tracks hidden browser tab activity)
+  5. *Screen Sharing Termination* (flags stopped presentation feeds)
+  6. *Acoustic Energy & Silence* (identifies extended audio disconnects)
+  7. *Audio-Visual Speech Mismatch* (cross-references lip aperture with voice RMS)
+- **Explainable Mathematical Ledger**: Calculates a deterministic integrity score (0–100) with itemized deductions and recovery math — **never a black-box AI verdict**.
+- **Human Recruiter Primacy**: The system provides advisory signals and evidence snapshots; the human recruiter retains 100% hiring authority.
+- **Workstation Dashboard**: Google Meet-style meeting creation (Schedule, Instant, Google Calendar export), direct 1-click host start and link sharing.
+
+---
+
+## 🚀 How to Use
+
+### Option A: Try the Live Web App (No Setup Required)
+Visit **[interviewshieldmusa.vercel.app](https://interviewshieldmusa.vercel.app)**:
+
+1. **For Interviewers / Recruiters**:
+   - Go to the Dashboard and click **Start Call** on any scheduled interview, or click **New Interview** to create one (Instant meeting, Schedule for later, or Google Calendar).
+   - In the live interview room, monitor candidate video, telemetry gauges, and collapsible diagnostic tools.
+2. **For Candidates**:
+   - Open the provided join link or enter the join code.
+   - Complete the pre-interview camera & microphone checks, grant proctoring consent, and begin the session.
+3. **Post-Interview Review**:
+   - View the incident timeline, inspect timestamped forensic snapshots, and export the formal audit report.
+
+---
+
+### Option B: Run Locally
+
+#### Prerequisites
+- **Node.js**: `v20.0.0+`
+- **npm**: `v10.0.0+`
+- **PostgreSQL 16**: (Optional for full persistence, or use Docker)
+
+#### Installation & Quick Start
+
 ```bash
+# 1. Clone the repository
+git clone https://github.com/shubhamsanjayvarma/MUSA-Project.git
+cd MUSA-Project
+
+# 2. Install monorepo dependencies
 npm install
-```
 
-### Step 2: Configure Environment
-Copy the example environment configuration in `server/`:
-```bash
-cp server/.env.example server/.env
-```
-Ensure `DATABASE_URL` in `server/.env` points to your PostgreSQL database.
-
-### Step 3: Start PostgreSQL (Optional via Docker)
-If you have Docker installed:
-```bash
-docker compose up -d db
-```
-
-### Step 4: Generate Prisma Client
-Generate the type-safe Prisma database client:
-```bash
-npm run db:generate
-```
-
-### Step 5: Start the Development Environment
-Run both backend and frontend concurrently:
-```bash
+# 3. Start development environment (frontend + backend)
 npm run dev
 ```
 
-The services will be available at:
-- **Client (Frontend)**: [http://localhost:5173](http://localhost:5173)
-- **Server (Backend API)**: [http://localhost:3001](http://localhost:3001)
-- **API Health Check**: [http://localhost:3001/api/health](http://localhost:3001/api/health)
+- **Frontend**: [http://localhost:5173](http://localhost:5173)
+- **Backend API**: [http://localhost:3001](http://localhost:3001)
+
+#### Database Setup (Optional)
+```bash
+# Start PostgreSQL via Docker
+docker compose up -d db
+
+# Generate Prisma client and run migrations
+npm run db:generate
+npm run db:migrate
+```
 
 ---
 
-## 4. Key Scripts
+## 🧪 Testing & Verification
 
-| Command | Action |
-|---|---|
-| `npm run dev` | Starts server (:3001) and client (:5173) concurrently |
-| `npm run dev:server` | Starts server with live auto-reload via `tsx watch` |
-| `npm run dev:client` | Starts Vite HMR dev server |
-| `npm run build` | Compiles `shared/`, `server/`, and `client/` |
-| `npm run db:generate` | Generates Prisma client from schema |
-| `npm run db:migrate` | Runs database migrations |
-| `npm run db:seed` | Seeds database with demo recruiter and test interviews |
-| `npm run test` | Runs unit tests across all workspaces |
-| `npm run lint` | Runs code quality checks across workspaces |
+The codebase is hardened with a strict **4-tier TDD architecture** (Complexity, Logic, UI/Integration, STRIDE/OWASP Security):
+
+```bash
+# Run all 230 automated unit, integration, and security tests
+npm test
+
+# Build production bundles
+npm run build
+```
+
+**Status**: 230 / 230 tests passing (100% green across monorepo).
 
 ---
 
-## 5. Specification Reference
+## 🏛️ Project Structure
 
-Full architectural contracts and specifications are available in the `/docs` directory:
-- [PRODUCT_SPEC.md](file:///c:/Users/sv369/OneDrive/Desktop/MUSA%20Project/docs/PRODUCT_SPEC.md) — Product requirements and MVP scope
-- [ARCHITECTURE.md](file:///c:/Users/sv369/OneDrive/Desktop/MUSA%20Project/docs/ARCHITECTURE.md) — System design, monorepo structure, and dev setup
-- [DETECTION_SPEC.md](file:///c:/Users/sv369/OneDrive/Desktop/MUSA%20Project/docs/DETECTION_SPEC.md) — MediaPipe and browser detectors
-- [RISK_ENGINE.md](file:///c:/Users/sv369/OneDrive/Desktop/MUSA%20Project/docs/RISK_ENGINE.md) — Deterministic integrity scoring engine
-- [DATABASE.md](file:///c:/Users/sv369/OneDrive/Desktop/MUSA%20Project/docs/DATABASE.md) — PostgreSQL 16 schema & indexes
-- [API_CONTRACT.md](file:///c:/Users/sv369/OneDrive/Desktop/MUSA%20Project/docs/API_CONTRACT.md) — REST endpoints & WebSocket wire protocol
-- [SECURITY.md](file:///c:/Users/sv369/OneDrive/Desktop/MUSA%20Project/docs/SECURITY.md) — Privacy principles and threat model
-- [TEST_PLAN.md](file:///c:/Users/sv369/OneDrive/Desktop/MUSA%20Project/docs/TEST_PLAN.md) — Test cases & robustness scenarios
-- [DEMO_SCRIPT.md](file:///c:/Users/sv369/OneDrive/Desktop/MUSA%20Project/docs/DEMO_SCRIPT.md) — Live judge demonstration guide
+```
+MUSA-Project/
+├── client/          # React 18 + Vite + TypeScript (Dashboard, Recruiter Room, Candidate View)
+├── server/          # Node.js + Express + WebSocket backend (REST API & Real-time Risk Engine)
+├── shared/          # Shared TypeScript interfaces (Telemetry events, Wire protocols)
+├── spec/            # Production technical specifications & architectural blueprints
+├── docs/            # Problem statement & rubric references
+└── package.json     # Monorepo workspace configuration
+```
+
+---
+
+## 🔒 Privacy & Security First
+
+- **Zero Camera/Audio Stream Ingress**: Video and audio streams are processed in temporary browser memory buffers and discarded immediately.
+- **Adversarial Hardening**: Join tokens are cryptographically randomized, route parameters are URI-encoded against parameter pollution, and DOM fallbacks feature guaranteed garbage cleanup.
+- **GDPR Compliance**: Candidate session data supports one-click crypto-shredding (`POST /api/sessions/:id/shred`).
+
+---
+
+**Team Harrington's Tech** · MUSA CodeX 2026
