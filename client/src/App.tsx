@@ -53,6 +53,17 @@ import {
   ReviewPanel,
   DownloadReportButton,
 } from './components/recruiter/index.js';
+import AuthSwitch from './components/ui/auth-switch';
+import {
+  auth,
+  googleProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  updateProfile,
+} from './services/firebase.js';
 
 // Header Component
 const Header: React.FC = () => {
@@ -60,7 +71,13 @@ const Header: React.FC = () => {
   const token = authApi.getToken();
 
   const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch {
+      // Ignore signOut errors
+    }
     await authApi.logout();
+    localStorage.removeItem('interviewshield_user');
     navigate('/login');
   };
 
@@ -206,6 +223,164 @@ const LoginPage: React.FC = () => {
           Default demo credentials pre-filled for evaluation.
         </p>
       </div>
+    </div>
+  );
+};
+
+// Modern Interactive Auth Page (Firebase Sign In & Sign Up)
+const AuthPage: React.FC<{ initialSignUp?: boolean }> = ({ initialSignUp = false }) => {
+  const navigate = useNavigate();
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setAuthError(null);
+    setIsLoading(true);
+    const form = e.currentTarget;
+    const emailInput = form.querySelector('input[type="email"]') as HTMLInputElement;
+    const passwordInput = form.querySelector('input[type="password"]') as HTMLInputElement;
+    const email = emailInput?.value?.trim() || '';
+    const password = passwordInput?.value || '';
+
+    try {
+      // Firebase Authentication
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const idToken = await userCredential.user.getIdToken();
+      authApi.setToken(idToken);
+      localStorage.setItem(
+        'interviewshield_user',
+        JSON.stringify({
+          name: userCredential.user.displayName || email.split('@')[0],
+          email: userCredential.user.email,
+        })
+      );
+      navigate('/dashboard');
+    } catch (err: unknown) {
+      const errorObj = err as { code?: string; message?: string };
+      let message = 'Failed to sign in. Please verify your credentials.';
+      if (
+        errorObj.code === 'auth/invalid-credential' ||
+        errorObj.code === 'auth/wrong-password' ||
+        errorObj.code === 'auth/user-not-found'
+      ) {
+        message = 'Invalid email or password.';
+      } else if (errorObj.code === 'auth/invalid-email') {
+        message = 'Please enter a valid email address.';
+      } else if (errorObj.code === 'auth/too-many-requests') {
+        message = 'Too many failed login attempts. Please try again later.';
+      } else if (errorObj.message) {
+        message = errorObj.message;
+      }
+      setAuthError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setAuthError(null);
+    setIsLoading(true);
+    const form = e.currentTarget;
+    const usernameInput = form.querySelector('input[type="text"]') as HTMLInputElement;
+    const allEmailInputs = form.querySelectorAll('input[type="email"]');
+    const allPasswordInputs = form.querySelectorAll('input[type="password"]');
+    const emailInput = (allEmailInputs[1] || allEmailInputs[0]) as HTMLInputElement;
+    const passwordInput = (allPasswordInputs[1] || allPasswordInputs[0]) as HTMLInputElement;
+
+    const username = usernameInput?.value?.trim() || 'Recruiter';
+    const email = emailInput?.value?.trim() || '';
+    const password = passwordInput?.value || '';
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      if (username) {
+        await updateProfile(userCredential.user, { displayName: username });
+      }
+      const idToken = await userCredential.user.getIdToken();
+      authApi.setToken(idToken);
+      localStorage.setItem(
+        'interviewshield_user',
+        JSON.stringify({
+          name: username || email.split('@')[0],
+          email: userCredential.user.email,
+        })
+      );
+      navigate('/dashboard');
+    } catch (err: unknown) {
+      const errorObj = err as { code?: string; message?: string };
+      let message = 'Failed to create account.';
+      if (errorObj.code === 'auth/email-already-in-use') {
+        message = 'This email is already in use. Please sign in instead.';
+      } else if (errorObj.code === 'auth/weak-password') {
+        message = 'Password should be at least 6 characters.';
+      } else if (errorObj.code === 'auth/invalid-email') {
+        message = 'Please provide a valid email address.';
+      } else if (errorObj.message) {
+        message = errorObj.message;
+      }
+      setAuthError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setAuthError(null);
+    setIsLoading(true);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const idToken = await result.user.getIdToken();
+      authApi.setToken(idToken);
+      localStorage.setItem(
+        'interviewshield_user',
+        JSON.stringify({
+          name: result.user.displayName || result.user.email?.split('@')[0] || 'Recruiter',
+          email: result.user.email,
+        })
+      );
+      navigate('/dashboard');
+    } catch (err: unknown) {
+      const errorObj = err as { code?: string; message?: string };
+      if (errorObj.code !== 'auth/popup-closed-by-user') {
+        setAuthError(errorObj.message || 'Google sign in failed.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {authError && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            backgroundColor: '#fee2e2',
+            color: '#b91c1c',
+            border: '1px solid #f87171',
+            borderRadius: '8px',
+            padding: '12px 24px',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+          }}
+        >
+          {authError}
+        </div>
+      )}
+      <AuthSwitch
+        initialSignUp={initialSignUp}
+        onSignInSubmit={handleSignIn}
+        onSignUpSubmit={handleSignUp}
+        onGoogleSignIn={handleGoogleSignIn}
+        isLoading={isLoading}
+      />
     </div>
   );
 };
@@ -1571,6 +1746,27 @@ const ModernDashboardPage: React.FC = () => {
 
 // Main App Router
 export const App: React.FC = () => {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const idToken = await user.getIdToken();
+          authApi.setToken(idToken);
+          localStorage.setItem(
+            'interviewshield_user',
+            JSON.stringify({
+              name: user.displayName || user.email?.split('@')[0] || 'Recruiter',
+              email: user.email,
+            })
+          );
+        } catch {
+          // Token refresh / storage fallback
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
@@ -1603,7 +1799,11 @@ export const App: React.FC = () => {
         <Route path="/landing" element={<HomePage />} />
         <Route path="/legacy-dashboard" element={<MainLayout><DashboardPage /></MainLayout>} />
         <Route path="/join/:token" element={<MainLayout><CandidateJoinPage /></MainLayout>} />
-        <Route path="/login" element={<MainLayout><LoginPage /></MainLayout>} />
+        {/* Authentication Routes */}
+        <Route path="/login" element={<AuthPage />} />
+        <Route path="/signin" element={<AuthPage />} />
+        <Route path="/signup" element={<AuthPage initialSignUp={true} />} />
+        <Route path="/legacy-login" element={<MainLayout><LoginPage /></MainLayout>} />
         <Route path="/dashboard/:interviewId" element={<MainLayout><SessionDetailPage /></MainLayout>} />
         <Route path="/interview/:sessionId" element={<MainLayout><CandidateInterviewPage /></MainLayout>} />
         <Route path="*" element={<MainLayout><div className="card"><h3>404: Page Not Found</h3></div></MainLayout>} />

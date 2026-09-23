@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   User,
   Shield,
@@ -7,18 +8,69 @@ import {
   Edit2,
   Check,
   X,
+  LogOut,
 } from 'lucide-react';
+import { authApi } from '../../services/api.js';
+import { auth, signOut } from '../../services/firebase.js';
 import '../../styles/interview-shield.css';
 
 export const ProfileScreen: React.FC = () => {
+  const navigate = useNavigate();
   const [activeSubTab, setActiveSubTab] = useState<'personal' | 'security' | 'notifications' | 'integrations'>('personal');
-  const [name, setName] = useState('Rahul Sharma');
-  const [email, setEmail] = useState('rahul@company.com');
+  const [name, setName] = useState(() => {
+    try {
+      const stored = localStorage.getItem('interviewshield_user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.name) return parsed.name;
+      }
+    } catch {
+      // fallback
+    }
+    return 'Rahul Sharma';
+  });
+  const [email, setEmail] = useState(() => {
+    try {
+      const stored = localStorage.getItem('interviewshield_user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.email) return parsed.email;
+      }
+    } catch {
+      // fallback
+    }
+    return 'rahul@company.com';
+  });
   const password = '••••••••';
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch {
+      // Ignore signOut errors
+    }
+    await authApi.logout();
+    localStorage.removeItem('interviewshield_user');
+    navigate('/login');
+  };
+
+  const handleSaveProfile = () => {
+    setIsEditing(false);
+    try {
+      const stored = localStorage.getItem('interviewshield_user');
+      const parsed = stored ? JSON.parse(stored) : {};
+      localStorage.setItem(
+        'interviewshield_user',
+        JSON.stringify({ ...parsed, name, email })
+      );
+    } catch {
+      // fallback
+    }
+  };
 
   const subTabs = [
     { id: 'personal', label: 'Personal Info', icon: User },
@@ -101,11 +153,37 @@ export const ProfileScreen: React.FC = () => {
               </button>
             );
           })}
+
+          <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--is-border)' }}>
+            <button
+              onClick={handleLogout}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                border: '1px solid #fee2e2',
+                backgroundColor: '#fef2f2',
+                color: '#ef4444',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.15s ease',
+              }}
+              id="profile-signout-subtab-btn"
+            >
+              <LogOut size={16} />
+              <span>Sign Out</span>
+            </button>
+          </div>
         </div>
 
         {/* Right Card: Profile Form */}
         <div className="is-card" style={{ padding: '28px' }}>
-          {/* Header Card Row: Avatar, Name, Role, Edit Button */}
+          {/* Header Card Row: Avatar, Name, Role, Edit & Sign Out Buttons */}
           <div
             style={{
               display: 'flex',
@@ -120,7 +198,7 @@ export const ProfileScreen: React.FC = () => {
                 className="is-avatar-circle"
                 style={{ width: '56px', height: '56px', fontSize: '1.35rem', backgroundColor: '#3b82f6' }}
               >
-                R
+                {(name[0] || 'R').toUpperCase()}
               </div>
               <div>
                 <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--is-text-primary)' }}>
@@ -135,15 +213,38 @@ export const ProfileScreen: React.FC = () => {
               </div>
             </div>
 
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="is-btn is-btn-outline"
-              style={{ padding: '6px 14px', fontSize: '0.8125rem' }}
-              id="btn-edit-profile"
-            >
-              <Edit2 size={13} />
-              <span>{isEditing ? 'Cancel' : 'Edit'}</span>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className="is-btn is-btn-outline"
+                style={{ padding: '6px 14px', fontSize: '0.8125rem' }}
+                id="btn-edit-profile"
+              >
+                <Edit2 size={13} />
+                <span>{isEditing ? 'Cancel' : 'Edit'}</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="is-btn is-btn-outline"
+                style={{
+                  padding: '6px 14px',
+                  fontSize: '0.8125rem',
+                  borderColor: '#fee2e2',
+                  backgroundColor: '#fef2f2',
+                  color: '#ef4444',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                }}
+                id="btn-profile-card-signout"
+                title="Sign Out to Login Page"
+              >
+                <LogOut size={13} />
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
 
           {/* Form Fields */}
@@ -198,7 +299,7 @@ export const ProfileScreen: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
                 <button
                   type="button"
-                  onClick={() => setIsEditing(false)}
+                  onClick={handleSaveProfile}
                   className="is-btn is-btn-primary"
                   style={{ padding: '10px 24px' }}
                 >
