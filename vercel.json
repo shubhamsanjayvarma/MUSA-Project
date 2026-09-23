@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build --workspace=client",
+  "buildCommand": "npm run build --workspace=@interviewshield/shared && npm run build --workspace=interview-shield-client",
   "outputDirectory": "client/dist",
   "framework": "vite",
   "rewrites": [
