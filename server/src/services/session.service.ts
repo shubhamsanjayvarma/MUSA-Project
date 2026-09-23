@@ -355,6 +355,27 @@ export class SessionService {
   }
 
   async getEvidenceFile(evidenceId: string, requester: AuthUser) {
+    // Security: path traversal check on evidenceId
+    const decodedId = (() => {
+      try {
+        return decodeURIComponent(evidenceId);
+      } catch {
+        return evidenceId;
+      }
+    })();
+
+    if (
+      evidenceId.includes('..') ||
+      decodedId.includes('..') ||
+      /%2e%2e/i.test(evidenceId) ||
+      evidenceId.includes('/') ||
+      evidenceId.includes('\\') ||
+      decodedId.includes('/') ||
+      decodedId.includes('\\')
+    ) {
+      return { status: 400 as const, code: 'INVALID_ID', message: 'Path traversal sequence detected in evidence ID' };
+    }
+
     const item = await prisma.evidenceItem.findUnique({
       where: { id: evidenceId },
       include: {
@@ -405,7 +426,7 @@ export class SessionService {
       return { status: 403, code: 'FORBIDDEN', message: 'Only recruiters can submit human reviews' };
     }
 
-    const validDecisions = ['pass', 'flag', 'inconclusive'];
+    const validDecisions = ['pass', 'flag', 'flagged', 'inconclusive'];
     const normalizedDecision = (reviewData.decision || '').toLowerCase().trim();
     if (!validDecisions.includes(normalizedDecision)) {
       return {
@@ -483,6 +504,82 @@ export class SessionService {
         decision: review.decision,
         notes: review.notes,
         reviewedAt: review.reviewedAt.toISOString(),
+      },
+    };
+  }
+
+  async cryptoShredSession(sessionId: string, requester: AuthUser) {
+    if (requester.role !== 'recruiter') {
+      return { status: 403, code: 'FORBIDDEN', message: 'Only recruiters can initiate GDPR crypto-shredding' };
+    }
+
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: { interview: true },
+    });
+
+    if (!session) {
+      return { status: 404, code: 'NOT_FOUND', message: 'Session not found' };
+    }
+
+    if (session.interview.recruiterId !== requester.id) {
+      return { status: 404, code: 'NOT_FOUND', message: 'Session not found' };
+    }
+
+    // 1. Delete physical evidence files on disk
+    let filesDeleted = 0;
+    const sessionDir = path.resolve(config.EVIDENCE_STORAGE_PATH, sessionId);
+    try {
+      if (fs.existsSync(sessionDir)) {
+        const files = await fs.promises.readdir(sessionDir);
+        for (const file of files) {
+          await fs.promises.unlink(path.join(sessionDir, file));
+          filesDeleted++;
+        }
+        await fs.promises.rmdir(sessionDir);
+      }
+    } catch {
+      // Continue even if disk shred encountered partial error
+    }
+
+    // 2. Delete EvidenceItem database records
+    await prisma.evidenceItem.deleteMany({
+      where: { sessionId },
+    });
+
+    // 3. Anonymize candidate PII in Interview record
+    const anonymizedName = `Erased Candidate [${sessionId.substring(0, 8)}]`;
+    const anonymizedEmail = `erased-${sessionId.substring(0, 8)}@shredded.local`;
+    await prisma.interview.update({
+      where: { id: session.interviewId },
+      data: {
+        candidateName: anonymizedName,
+        candidateEmail: anonymizedEmail,
+        joinToken: `shredded-${Date.now()}`,
+      },
+    });
+
+    // 4. Mark session metadata as shredded
+    const currentMeta = (session.metadata as Record<string, unknown>) || {};
+    await prisma.session.update({
+      where: { id: sessionId },
+      data: {
+        metadata: {
+          ...currentMeta,
+          cryptoShredded: true,
+          shreddedAt: new Date().toISOString(),
+          shreddedBy: requester.id,
+        },
+      },
+    });
+
+    return {
+      status: 200,
+      data: {
+        shredded: true,
+        sessionId,
+        filesDeleted,
+        shreddedAt: new Date().toISOString(),
       },
     };
   }

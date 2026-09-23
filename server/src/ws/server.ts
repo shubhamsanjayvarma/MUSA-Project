@@ -9,6 +9,7 @@ import { config } from '../config.js';
 import { prisma } from '../db/client.js';
 import { eventService } from '../services/event.service.js';
 import { logger } from '../app.js';
+import { incActiveSessions, decActiveSessions } from '../telemetry/metrics.js';
 import {
   WSClientMessage,
   WSServerMessage,
@@ -24,7 +25,23 @@ interface AuthenticatedSocket extends WebSocket {
 }
 
 export function setupWebSocketServer(server: HttpServer): WebSocketServer {
-  const wss = new WebSocketServer({ noServer: true });
+  const wss = new WebSocketServer({
+    noServer: true,
+    handleProtocols: (protocols) => {
+      const list = Array.from(protocols);
+      return list[0] || false;
+    },
+  });
+
+  function broadcastToSession(sessionId: string, msg: WSServerMessage) {
+    const json = JSON.stringify(msg);
+    wss.clients.forEach((client) => {
+      const authWs = client as AuthenticatedSocket;
+      if (authWs.sessionId === sessionId && authWs.readyState === WebSocket.OPEN) {
+        authWs.send(json);
+      }
+    });
+  }
 
   // Handle HTTP Upgrade on /ws/session/:sessionId
   server.on('upgrade', (request, socket, head) => {
@@ -41,7 +58,22 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
       }
 
       const sessionId = match[1];
-      const token = parsedUrl.searchParams.get('token');
+      let token = parsedUrl.searchParams.get('token');
+
+      // VULN-03: Priority check for Sec-WebSocket-Protocol header to prevent query param leakage
+      const secProtocols = request.headers['sec-websocket-protocol'];
+      if (!token && secProtocols) {
+        const parts = secProtocols.split(',').map((p) => p.trim());
+        for (const part of parts) {
+          if (part.split('.').length === 3) {
+            token = part;
+            break;
+          } else if (part.startsWith('token.')) {
+            token = part.slice(6);
+            break;
+          }
+        }
+      }
 
       if (!token) {
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
@@ -95,6 +127,9 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
     });
 
     ws.on('close', (code, reason) => {
+      if (sessionVerified) {
+        decActiveSessions();
+      }
       logger.info(
         { sessionId, code, reason: reason.toString() },
         'WebSocket client disconnected'
@@ -137,6 +172,7 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
         }
 
         sessionVerified = true;
+        incActiveSessions();
 
         // Send session:joined confirmation
         const welcomeMsg: WSServerMessage = {
@@ -174,6 +210,12 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
       }
     })();
 
+    // 10 events / second token bucket rate limiter per connection
+    const rateLimiter = {
+      tokens: 10,
+      lastRefill: Date.now(),
+    };
+
     // Message handler
     ws.on('message', async (data: Buffer | string) => {
       await sessionInitPromise;
@@ -181,15 +223,86 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
 
       try {
         const rawText = data.toString();
+        if (rawText.length > 131072) {
+          ws.send(
+            JSON.stringify({
+              type: 'error',
+              payload: {
+                code: 'PAYLOAD_TOO_LARGE',
+                message: 'WebSocket message exceeds limit',
+              },
+            })
+          );
+          return;
+        }
         const message = JSON.parse(rawText) as WSClientMessage;
+        if (message.type !== 'evidence:snapshot' && rawText.length > 65536) {
+          ws.send(
+            JSON.stringify({
+              type: 'error',
+              payload: {
+                code: 'PAYLOAD_TOO_LARGE',
+                message: 'WebSocket message exceeds 64KB limit',
+              },
+            })
+          );
+          return;
+        }
 
         if (message.type === 'ping' || message.type === 'session:heartbeat') {
+          if (message.type === 'session:heartbeat') {
+            try {
+              const simTime =
+                typeof (message.payload as any)?.timestamp === 'number'
+                  ? (message.payload as any).timestamp
+                  : typeof (message as any).timestamp === 'number'
+                    ? (message as any).timestamp
+                    : Date.now();
+              const recoveryResult = await eventService.checkCleanRecovery(sessionId, simTime);
+              if (recoveryResult.scoreChanged) {
+                const riskUpdate: WSServerMessage = {
+                  type: 'risk:update',
+                  payload: {
+                    sessionId,
+                    currentScore: recoveryResult.scoreAfter,
+                    currentRiskState: recoveryResult.riskState as any,
+                    explanation: recoveryResult.explanation,
+                    timestamp: Date.now(),
+                  },
+                };
+                broadcastToSession(sessionId, riskUpdate);
+              }
+            } catch (err) {
+              logger.warn({ err, sessionId }, 'Error evaluating clean recovery on heartbeat');
+            }
+          }
+
           const pong: WSServerMessage = { type: 'pong' };
           ws.send(JSON.stringify(pong));
           return;
         }
 
         if (message.type === 'detection:event') {
+          const now = Date.now();
+          const timePassed = (now - rateLimiter.lastRefill) / 1000;
+          rateLimiter.tokens = Math.min(10, rateLimiter.tokens + timePassed * 10);
+          rateLimiter.lastRefill = now;
+
+          if (rateLimiter.tokens < 1) {
+            logger.warn({ sessionId }, 'Rate limit exceeded for detection:event');
+            ws.send(
+              JSON.stringify({
+                type: 'error',
+                payload: {
+                  code: 'RATE_LIMIT_EXCEEDED',
+                  message: 'Rate limit exceeded: maximum 10 detection events per second',
+                },
+              })
+            );
+            return;
+          }
+          rateLimiter.tokens -= 1;
+
           const eventMsg = message as DetectionEventMessage;
           const seq = eventMsg.sequenceNumber ?? 0;
 
@@ -211,7 +324,7 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
             };
             ws.send(JSON.stringify(ackMsg));
 
-            // If risk score changed, broadcast risk:update
+            // If risk score changed, broadcast risk:update to all session sockets
             if (result.scoreChanged) {
               const riskUpdate: WSServerMessage = {
                 type: 'risk:update',
@@ -223,7 +336,7 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
                   timestamp: Date.now(),
                 },
               };
-              ws.send(JSON.stringify(riskUpdate));
+              broadcastToSession(sessionId, riskUpdate);
             }
           } catch (err) {
             logger.error({ err, sessionId, seq }, 'Failed to process detection event');
@@ -398,6 +511,15 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
         }
       } catch (err) {
         logger.error({ err, sessionId }, 'Error parsing incoming WebSocket message');
+        ws.send(
+          JSON.stringify({
+            type: 'error',
+            payload: {
+              code: 'MALFORMED_MESSAGE',
+              message: 'Failed to parse JSON message',
+            },
+          })
+        );
       }
     });
 

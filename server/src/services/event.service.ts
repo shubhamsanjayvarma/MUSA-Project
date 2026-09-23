@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import { prisma } from '../db/client.js';
 import { DetectionEvent, EventSeverity } from '@interviewshield/shared';
-import { calculateRisk, RiskCalculationResult } from '../risk/engine.js';
+import { calculateRisk, evaluateCleanRecovery, RiskCalculationResult } from '../risk/engine.js';
 import { logger } from '../app.js';
+import { recordEventIngested, recordRiskScore, recordEventLatency } from '../telemetry/metrics.js';
 
 export const detectionEventSchema = z.object({
   eventType: z.string().min(1),
@@ -29,6 +30,23 @@ export class EventService {
     sequenceNumber: number,
     rawEvent: DetectionEvent
   ): Promise<ProcessEventResult> {
+    // Prototype pollution defense
+    if (['__proto__', 'constructor', 'prototype'].includes(rawEvent?.eventType)) {
+      throw new Error('Invalid eventType: prototype property name not allowed');
+    }
+
+    if (rawEvent?.payload && typeof rawEvent.payload === 'object') {
+      const payloadKeys = Object.getOwnPropertyNames(rawEvent.payload);
+      if (payloadKeys.some((k) => k === '__proto__' || k === 'constructor' || k === 'prototype')) {
+        throw new Error('Prototype pollution attempt detected in payload');
+      }
+    }
+
+    // Oversized payload defense (max 32KB for detection event payload)
+    if (rawEvent?.payload && JSON.stringify(rawEvent.payload).length > 32768) {
+      throw new Error('Payload exceeds maximum allowed size of 32KB');
+    }
+
     // 1. Validate incoming event schema
     const parseResult = detectionEventSchema.safeParse(rawEvent);
     if (!parseResult.success) {
@@ -53,7 +71,10 @@ export class EventService {
         : null;
 
     // 3. Calculate risk deduction & state
-    const currentTimestamp = Date.now();
+    const currentTimestamp =
+      typeof event.timestamp === 'number' && event.timestamp > 0
+        ? event.timestamp
+        : Date.now();
     const riskResult: RiskCalculationResult = calculateRisk({
       currentScore: session.currentIntegrityScore,
       peakScore: session.peakIntegrityScore,
@@ -81,6 +102,11 @@ export class EventService {
           scoreAfter: riskResult.score,
         },
       });
+
+      // Telemetry: record ingested event, risk score, and event latency
+      recordEventIngested(event.eventType, event.severity);
+      recordRiskScore(riskResult.score);
+      recordEventLatency(Math.max(0, currentTimestamp - event.timestamp));
     } catch (err: unknown) {
       // Check if duplicate sequenceNumber
       const prismaError = err as { code?: string };
@@ -146,6 +172,71 @@ export class EventService {
       riskState: riskResult.state,
       scoreChanged: riskResult.changed,
       explanation: riskResult.explanation,
+    };
+  }
+
+  async checkCleanRecovery(
+    sessionId: string,
+    currentTimestamp: number = Date.now()
+  ): Promise<{
+    scoreBefore: number;
+    scoreAfter: number;
+    riskState: string;
+    scoreChanged: boolean;
+    explanation: string;
+  }> {
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session) {
+      throw new Error(`Session ${sessionId} not found`);
+    }
+
+    const metadata = (session.metadata as Record<string, unknown>) || {};
+    const lastAnomalyTimestamp =
+      typeof metadata.lastAnomalyTimestamp === 'number'
+        ? metadata.lastAnomalyTimestamp
+        : null;
+
+    const recoveryResult = evaluateCleanRecovery(
+      session.currentIntegrityScore,
+      session.peakIntegrityScore,
+      lastAnomalyTimestamp,
+      currentTimestamp
+    );
+
+    if (recoveryResult.changed) {
+      await prisma.riskSnapshot.create({
+        data: {
+          sessionId,
+          timestamp: new Date(currentTimestamp),
+          integrityScore: recoveryResult.score,
+          riskState: recoveryResult.state,
+          explanation: recoveryResult.explanation,
+        },
+      });
+
+      await prisma.session.update({
+        where: { id: sessionId },
+        data: {
+          currentIntegrityScore: recoveryResult.score,
+          currentRiskState: recoveryResult.state,
+          peakIntegrityScore: recoveryResult.updatedPeakScore,
+          metadata: {
+            ...metadata,
+            lastAnomalyTimestamp: recoveryResult.updatedLastAnomalyTimestamp,
+          },
+        },
+      });
+    }
+
+    return {
+      scoreBefore: recoveryResult.previousScore,
+      scoreAfter: recoveryResult.score,
+      riskState: recoveryResult.state,
+      scoreChanged: recoveryResult.changed,
+      explanation: recoveryResult.explanation,
     };
   }
 }
