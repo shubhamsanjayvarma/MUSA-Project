@@ -1712,20 +1712,27 @@ import { PricingScreen } from './components/screens/PricingScreen.js';
 // Enhanced Recruiter Dashboard Container
 const ModernDashboardPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createModalMode, setCreateModalMode] = useState<'schedule' | 'instant' | 'google-calendar'>('schedule');
   const navigate = useNavigate();
+
+  const handleOpenCreateModal = (mode?: 'schedule' | 'instant' | 'google-calendar') => {
+    setCreateModalMode(mode || 'schedule');
+    setIsCreateModalOpen(true);
+  };
 
   return (
     <RecruiterLayout
-      onNewInterviewClick={() => setIsCreateModalOpen(true)}
+      onNewInterviewClick={() => handleOpenCreateModal('schedule')}
       onJoinCodeClick={() => navigate('/join')}
     >
       <DashboardScreen
-        onNewInterviewClick={() => setIsCreateModalOpen(true)}
+        onNewInterviewClick={handleOpenCreateModal}
         onJoinCodeClick={() => navigate('/join')}
       />
 
       <CreateInterviewModal
         isOpen={isCreateModalOpen}
+        mode={createModalMode}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccessNavigate={(url: string) => navigate(url)}
       />

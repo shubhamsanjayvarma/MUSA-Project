@@ -10,6 +10,8 @@ export interface StoredInterview {
   candidateEmail: string;
   role: string;
   dateTime: string;
+  date?: string;
+  time?: string;
   duration: number; // in minutes
   status: 'Upcoming' | 'Scheduled' | 'Completed';
   joinCode: string;
@@ -105,12 +107,12 @@ export const appStore = {
   },
 
   createInterview(data: {
-    title: string;
+    title?: string;
     role: string;
-    date: string;
-    time: string;
-    duration: string;
-    enableMonitoring: boolean;
+    date?: string;
+    time?: string;
+    duration?: string;
+    enableMonitoring?: boolean;
     candidateName?: string;
     candidateEmail?: string;
   }): StoredInterview {
@@ -125,12 +127,14 @@ export const appStore = {
       candidateName: data.candidateName || 'New Candidate',
       candidateEmail: data.candidateEmail || 'candidate@example.com',
       role: data.role,
-      dateTime: `${data.date}, ${data.time}`,
-      duration: parseInt(data.duration, 10) || 60,
+      dateTime: data.date && data.time ? `${data.date}, ${data.time}` : 'Today, Live',
+      date: data.date,
+      time: data.time,
+      duration: data.duration ? parseInt(data.duration, 10) || 60 : 60,
       status: 'Upcoming',
       joinCode,
       avatarColor: '#3b82f6',
-      enableMonitoring: data.enableMonitoring,
+      enableMonitoring: data.enableMonitoring ?? true,
       integrityScore: 100,
     };
 
@@ -167,6 +171,13 @@ export const appStore = {
   // Active Candidate Session
   setActiveSession(interview: StoredInterview) {
     sessionStorage.setItem('is_active_session', JSON.stringify(interview));
+  },
+
+  setCandidateActiveSession(interview: StoredInterview) {
+    // Anti-gaming: strip numerical integrity score from candidate session storage
+    const candidateSafe = { ...interview };
+    delete (candidateSafe as any).integrityScore;
+    sessionStorage.setItem('is_active_session', JSON.stringify(candidateSafe));
   },
 
   getActiveSession(): StoredInterview {

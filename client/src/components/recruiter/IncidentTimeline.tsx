@@ -74,7 +74,25 @@ export function getFriendlyEventTitle(eventType: string, title?: string): string
   }
 }
 
-// Severity Badge Configuration
+// Severity Indicator Dot Colors (frontend-audit clean minimal design)
+export function getSeverityDotColor(severity: EventSeverity): string {
+  const norm = severity === 'warning' ? 'medium' : severity;
+  switch (norm) {
+    case 'critical':
+      return '#ef4444'; // Clean red dot
+    case 'high':
+      return '#f97316'; // Clean orange dot
+    case 'medium':
+      return '#f59e0b'; // Clean amber dot
+    case 'low':
+      return '#64748b'; // Clean slate dot
+    case 'info':
+    default:
+      return '#94a3b8'; // Neutral slate dot
+  }
+}
+
+// Severity Badge Configuration (Kept for backwards compatibility)
 export function getSeverityStyle(severity: EventSeverity) {
   const norm = severity === 'warning' ? 'medium' : severity;
   switch (norm) {
@@ -142,101 +160,106 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(480);
-  const ITEM_HEIGHT = 56; // 56px fixed row height per specification
+  const ITEM_HEIGHT = 68; // 68px 2-line row height guarantees zero clipping across all viewport widths
   const OVERSCAN = 6;
 
   // Filtered dataset
   const filteredEvents = useMemo(() => {
     return events.filter((ev) => {
-      const normSev = ev.severity === 'warning' ? 'medium' : ev.severity;
-      if (filterSeverity !== 'all' && normSev !== filterSeverity) {
+      // 1. Severity filter
+      if (filterSeverity !== 'all' && ev.severity !== filterSeverity) {
         return false;
       }
+      // 2. Text Search Query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const title = getFriendlyEventTitle(ev.eventType, ev.title).toLowerCase();
-        const detector = (ev.detectorId || '').toLowerCase();
-        const payloadStr = JSON.stringify(ev.payload || {}).toLowerCase();
-        return title.includes(q) || detector.includes(q) || payloadStr.includes(q);
+        const matchesTitle = (ev.title || '').toLowerCase().includes(q);
+        const matchesType = ev.eventType.toLowerCase().includes(q);
+        const matchesDetector = (ev.detectorId || '').toLowerCase().includes(q);
+        const matchesDetail = (ev.detail || '').toLowerCase().includes(q);
+        if (!matchesTitle && !matchesType && !matchesDetector && !matchesDetail) {
+          return false;
+        }
       }
       return true;
     });
   }, [events, filterSeverity, searchQuery]);
 
-  // Handle scroll for virtualization
-  const handleScroll = useCallback(() => {
-    if (containerRef.current) {
-      setScrollTop(containerRef.current.scrollTop);
-    }
+  // Derived visible items
+  const totalCount = filteredEvents.length;
+  const totalHeight = totalCount * ITEM_HEIGHT;
+  const isVirtualized = totalCount >= virtualizeThreshold;
+
+  const startIndex = isVirtualized ? Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN) : 0;
+  const endIndex = isVirtualized
+    ? Math.min(totalCount, Math.ceil((scrollTop + containerHeight) / ITEM_HEIGHT) + OVERSCAN)
+    : totalCount;
+
+  const visibleEvents = isVirtualized ? filteredEvents.slice(startIndex, endIndex) : filteredEvents;
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(e.currentTarget.scrollTop);
   }, []);
 
   useEffect(() => {
     if (containerRef.current) {
       setContainerHeight(containerRef.current.clientHeight || 480);
     }
-  }, []);
+  }, [maxHeight]);
 
-  const isVirtualized = filteredEvents.length > virtualizeThreshold;
-
-  const totalHeight = filteredEvents.length * ITEM_HEIGHT;
-  const startIndex = isVirtualized
-    ? Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN)
-    : 0;
-  const endIndex = isVirtualized
-    ? Math.min(filteredEvents.length - 1, Math.ceil((scrollTop + containerHeight) / ITEM_HEIGHT) + OVERSCAN)
-    : filteredEvents.length - 1;
-
-  const visibleEvents = isVirtualized
-    ? filteredEvents.slice(startIndex, endIndex + 1)
-    : filteredEvents;
-
-  const toggleExpand = (id: string, evObj: IncidentEvent) => {
+  const toggleExpand = (id: string, ev: IncidentEvent) => {
     setExpandedEventId((prev) => (prev === id ? null : id));
-    if (onSelectEvent) onSelectEvent(evObj);
+    if (onSelectEvent) {
+      onSelectEvent(ev);
+    }
   };
 
   const formatTimestamp = (ev: IncidentEvent) => {
     if (ev.time) return ev.time;
-    if (ev.serverTimestamp) {
-      const d = new Date(ev.serverTimestamp);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    if (ev.clientTimestamp) {
+      try {
+        const d = new Date(ev.clientTimestamp);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      } catch {
+        return ev.clientTimestamp;
+      }
     }
     return '--:--:--';
   };
 
   return (
     <div
-      className={`recruiter-subpixel-card ${className}`}
+      className={`recruiter-card ${className}`}
       style={{
-        display: 'flex',
-        flexDirection: 'column',
+        padding: '0',
         overflow: 'hidden',
+        border: 'none',
+        borderRadius: '0',
         backgroundColor: '#ffffff',
         ...style,
       }}
-      role="region"
-      aria-label="Detection Incident Timeline"
     >
       {/* Top Header & Filter Controls Bar */}
       <div
         style={{
           display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-          padding: '14px 18px',
+          flexDirection: 'column',
+          gap: '10px',
+          padding: '12px 16px',
           borderBottom: '1px solid #e2e8f0',
+          backgroundColor: '#ffffff',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Activity size={18} color="#2563eb" />
-          <span
-            className="recruiter-mono recruiter-text-13"
-            style={{ fontWeight: 600, color: 'var(--recruiter-text-primary, #0f172a)' }}
-          >
-            Incident Telemetry Timeline
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Activity size={15} color="#0f172a" />
+            <span
+              className="recruiter-text-13"
+              style={{ fontWeight: 600, color: 'var(--recruiter-text-primary, #0f172a)' }}
+            >
+              Incident Timeline
+            </span>
+          </div>
           <span
             className="recruiter-mono tnum recruiter-text-11"
             style={{
@@ -250,18 +273,9 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
           >
             {filteredEvents.length} events
           </span>
-          {isVirtualized && (
-            <span
-              className="recruiter-mono recruiter-text-11"
-              style={{ color: '#2563eb', opacity: 0.8 }}
-              title="Virtualized for smooth 60fps rendering"
-            >
-              [Virtualized]
-            </span>
-          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {/* Search Input */}
           {showSearch && (
             <div
@@ -269,6 +283,7 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                 position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
+                flex: 1,
               }}
             >
               <Search
@@ -283,46 +298,43 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="recruiter-text-12"
                 style={{
-                  padding: '6px 12px 6px 30px',
+                  padding: '5px 10px 5px 30px',
                   backgroundColor: '#ffffff',
                   border: '1px solid #e2e8f0',
                   borderRadius: '6px',
                   color: 'var(--recruiter-text-primary, #0f172a)',
-                  width: '160px',
+                  width: '100%',
                   outline: 'none',
                 }}
               />
             </div>
           )}
 
-          {/* Severity Filter Pills */}
+          {/* Severity Filter Dropdown - Anti-Pattern #4 Fix */}
           {showFilters && (
-            <div style={{ display: 'flex', gap: '4px' }}>
-              {(['all', 'critical', 'high', 'medium', 'low'] as const).map((sev) => {
-                const isActive = filterSeverity === sev;
-                return (
-                  <button
-                    key={sev}
-                    type="button"
-                    onClick={() => setFilterSeverity(sev)}
-                    className="recruiter-mono recruiter-text-11"
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      border: `1px solid ${isActive ? '#2563eb' : '#e2e8f0'}`,
-                      backgroundColor: isActive ? '#eff6ff' : '#ffffff',
-                      color: isActive ? '#2563eb' : 'var(--recruiter-text-secondary, #475569)',
-                      fontWeight: isActive ? 600 : 500,
-                      cursor: 'pointer',
-                      textTransform: 'capitalize',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    {sev}
-                  </button>
-                );
-              })}
-            </div>
+            <select
+              value={filterSeverity}
+              onChange={(e) => setFilterSeverity(e.target.value as any)}
+              className="recruiter-text-11"
+              aria-label="Filter severity"
+              style={{
+                padding: '5px 10px',
+                borderRadius: '6px',
+                border: '1px solid #e2e8f0',
+                backgroundColor: '#ffffff',
+                color: 'var(--recruiter-text-secondary, #475569)',
+                fontWeight: 500,
+                cursor: 'pointer',
+                outline: 'none',
+                height: '28px',
+              }}
+            >
+              <option value="all">All Severities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
           )}
         </div>
       </div>
@@ -385,7 +397,6 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                 const globalIndex = startIndex + relIdx;
                 const isExpanded = expandedEventId === ev.id;
                 const isSelected = selectedEventId === ev.id;
-                const sevStyle = getSeverityStyle(ev.severity);
 
                 // Delta calculation
                 const scoreDelta =
@@ -400,122 +411,59 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
 
                 return (
                   <div key={ev.id || globalIndex} style={{ width: '100%' }}>
-                    {/* Row item matching DESIGN.md: 2-column grid layout */}
+                    {/* Compact 2-line layout that NEVER clips in sidebars */}
                     <div
                       onClick={() => toggleExpand(ev.id, ev)}
                       className={`recruiter-timeline-row ${isSelected || isExpanded ? 'active' : ''}`}
                       style={{
-                        height: `${ITEM_HEIGHT}px`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0 18px',
+                        padding: '10px 16px',
                         cursor: 'pointer',
                         boxSizing: 'border-box',
                         userSelect: 'none',
+                        borderBottom: '1px solid #f1f5f9',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
                       }}
                     >
-                      {/* Left Column: Fixed 130px monospace timestamp & sequence */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          width: '140px',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <span style={{ color: 'var(--recruiter-text-muted, #64748b)' }}>
-                          {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                        </span>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {/* Line 1: Chevron + Dot + Timestamp + Title + Score Delta */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                          <span style={{ color: 'var(--recruiter-text-muted, #64748b)', flexShrink: 0 }}>
+                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                          </span>
+                          {/* Small clean severity dot to the side (Anti-Pattern #1 & #2 clean fix) */}
                           <span
-                            className="tnum recruiter-mono recruiter-text-12"
-                            style={{ color: 'var(--recruiter-text-secondary, #475569)', fontWeight: 500 }}
+                            style={{
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: '50%',
+                              backgroundColor: getSeverityDotColor(ev.severity),
+                              flexShrink: 0,
+                            }}
+                            title={`Severity: ${ev.severity}`}
+                          />
+                          <span
+                            className="tnum recruiter-mono recruiter-text-11"
+                            style={{ color: '#64748b', fontWeight: 500, flexShrink: 0 }}
                           >
                             {formatTimestamp(ev)}
                           </span>
-                          {ev.sequenceNumber !== undefined && (
-                            <span
-                              className="recruiter-mono recruiter-text-11"
-                              style={{ color: 'var(--recruiter-text-muted, #94a3b8)' }}
-                            >
-                              seq #{ev.sequenceNumber}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Center Column: Signal Title & Detector ID */}
-                      <div
-                        style={{
-                          flex: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          overflow: 'hidden',
-                          padding: '0 12px',
-                        }}
-                      >
-                        {/* Severity Badge */}
-                        <span
-                          className="recruiter-mono recruiter-text-11"
-                          style={{
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            backgroundColor: sevStyle.bg,
-                            color: sevStyle.color,
-                            border: `1px solid ${sevStyle.border}`,
-                            fontWeight: 700,
-                            letterSpacing: '0.04em',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {sevStyle.label}
-                        </span>
-
-                        {/* Title */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
                           <span
                             className="recruiter-text-13"
                             style={{
-                              fontWeight: 600,
+                              fontWeight: 500,
                               color: 'var(--recruiter-text-primary, #0f172a)',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
                             }}
                           >
                             {getFriendlyEventTitle(ev.eventType, ev.title)}
                           </span>
-                          {ev.detail && (
-                            <span
-                              className="recruiter-text-11"
-                              style={{ color: 'var(--recruiter-text-secondary, #64748b)' }}
-                            >
-                              {ev.detail}
-                            </span>
-                          )}
                         </div>
-                      </div>
 
-                      {/* Right Column: Score Delta Pill & Evidence button */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {/* Score Delta Pill */}
+                        {/* Score Delta Pill (Neutral, high-contrast, zero neon colors) */}
                         {hasDelta ? (
                           <div
                             className="tnum recruiter-mono recruiter-text-11"
@@ -523,45 +471,42 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              padding: '2px 8px',
-                              borderRadius: '9999px',
-                              fontWeight: 700,
-                              backgroundColor:
-                                scoreDelta < 0
-                                  ? '#fef2f2'
-                                  : scoreDelta > 0
-                                  ? '#f0fdf4'
-                                  : '#f8fafc',
-                              color:
-                                scoreDelta < 0
-                                  ? '#b91c1c'
-                                  : scoreDelta > 0
-                                  ? '#15803d'
-                                  : '#475569',
-                              border: `1px solid ${
-                                scoreDelta < 0
-                                  ? '#fecaca'
-                                  : scoreDelta > 0
-                                  ? '#bbf7d0'
-                                  : '#e2e8f0'
-                              }`,
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              fontWeight: 600,
+                              flexShrink: 0,
+                              backgroundColor: '#f8fafc',
+                              color: scoreDelta < 0 ? '#b91c1c' : '#15803d',
+                              border: '1px solid #e2e8f0',
                             }}
                           >
                             {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta}
                           </div>
                         ) : null}
+                      </div>
 
-                        {/* Confidence Indicator */}
-                        {ev.confidence !== undefined && (
-                          <span
-                            className="tnum recruiter-mono recruiter-text-11"
-                            style={{ color: 'var(--recruiter-text-muted, #64748b)' }}
-                          >
-                            {(ev.confidence * 100).toFixed(0)}%
-                          </span>
-                        )}
+                      {/* Line 2: Details & Evidence (Clean, NO colored pastel badge pills) */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: '28px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                          {ev.detail && (
+                            <span
+                              className="recruiter-text-11"
+                              style={{ color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                            >
+                              {ev.detail}
+                            </span>
+                          )}
+                          {ev.sequenceNumber !== undefined && (
+                            <span
+                              className="recruiter-mono recruiter-text-11"
+                              style={{ color: '#94a3b8', flexShrink: 0 }}
+                            >
+                              · seq #{ev.sequenceNumber}
+                            </span>
+                          )}
+                        </div>
 
-                        {/* Evidence Snapshot indicator */}
+                        {/* Evidence button (Clean monochrome style, zero glowing blue) */}
                         {(ev.hasEvidence || ev.evidenceUrl) && (
                           <button
                             type="button"
@@ -579,16 +524,18 @@ export const IncidentTimeline: React.FC<IncidentTimelineProps> = ({
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '4px',
-                              padding: '3px 8px',
-                              borderRadius: '6px',
-                              backgroundColor: '#eff6ff',
-                              color: '#2563eb',
-                              border: '1px solid #bfdbfe',
-                              fontWeight: 600,
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              backgroundColor: '#ffffff',
+                              color: '#334155',
+                              border: '1px solid #cbd5e1',
+                              fontWeight: 500,
                               cursor: 'pointer',
+                              fontSize: '0.6875rem',
+                              flexShrink: 0,
                             }}
                           >
-                            <Eye size={12} /> Frame
+                            <Eye size={11} /> Frame
                           </button>
                         )}
                       </div>

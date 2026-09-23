@@ -357,8 +357,8 @@ export const RadialScoreGauge: React.FC<RadialScoreGaugeProps> = ({
         <div
           style={{
             position: 'absolute',
-            top: size === 'standard' ? '58%' : '56%',
-            left: '50%',
+            top: `${Math.round(cy - r * 0.25)}px`,
+            left: `${Math.round(cx)}px`,
             transform: 'translate(-50%, -50%)',
             display: 'flex',
             flexDirection: 'column',
@@ -367,26 +367,34 @@ export const RadialScoreGauge: React.FC<RadialScoreGaugeProps> = ({
             textAlign: 'center',
             pointerEvents: 'none',
             lineHeight: 1,
+            width: '100px',
           }}
         >
           <span
             className="tnum"
             style={{
-              fontSize: size === 'standard' ? '42px' : '26px',
+              fontSize: size === 'standard' ? '38px' : '26px',
               fontWeight: 700,
               color: '#0f172a',
-              letterSpacing: '-0.03em',
+              letterSpacing: '-0.02em',
               lineHeight: 1,
+              display: 'block',
+              textAlign: 'center',
             }}
           >
             {displayScore}
           </span>
           <span
+            className="tnum"
             style={{
-              fontSize: '0.6875rem',
+              fontSize: size === 'standard' ? '0.75rem' : '0.6875rem',
               color: '#64748b',
               fontWeight: 500,
               marginTop: '4px',
+              lineHeight: 1,
+              display: 'block',
+              textAlign: 'center',
+              letterSpacing: '0.02em',
             }}
           >
             / 100

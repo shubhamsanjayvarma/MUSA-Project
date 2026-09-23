@@ -379,6 +379,10 @@
   overflow-x: auto;
 }
 
+.is-table-container:has([data-menu-popover="true"]) {
+  overflow: visible;
+}
+
 .is-table {
   width: 100%;
   border-collapse: collapse;
@@ -410,6 +414,91 @@
 
 .is-table tr:hover td {
   background-color: #fafbfc;
+}
+
+/* Table Action Buttons & Monograms (Anti-Slop Clean Workstation) */
+.is-table-monogram {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.is-row-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background-color: #0f172a;
+  color: #ffffff;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.is-row-btn-primary:hover {
+  background-color: #1e293b;
+}
+
+.is-row-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background-color: #ffffff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.is-row-btn-secondary:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.is-row-btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.is-row-btn-icon:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: var(--is-text-primary);
+}
+
+.is-row-btn-icon.copied {
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
 }
 
 /* Modals */

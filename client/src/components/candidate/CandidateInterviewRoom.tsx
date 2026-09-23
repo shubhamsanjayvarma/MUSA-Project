@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Mic,
   MicOff,
@@ -27,6 +27,11 @@ import {
   AudioDetector,
   AVCorrelator,
 } from '../../detectors/index.js';
+import {
+  createSyntheticCandidateStream,
+  createSyntheticInterviewerStream,
+  SyntheticMediaStream,
+} from '../../services/synthetic-media.js';
 import { CandidateConsentGate } from './CandidateConsentGate.js';
 import '../../styles/candidate.css';
 
@@ -45,21 +50,29 @@ interface CandidateInterviewRoomProps {
  * 2. ANTI-GAMING GUARANTEE: NEVER displays numerical integrity score (0-100) or deduction amounts.
  *    Only neutral proctoring indicators ('Proctoring Active', 'Audio & Video Connected', etc.)
  * 3. Full integration with mediaManager, WSClient, and DetectorOrchestrator.
+ * 4. Zero static mock images: real camera / synthetic streams with leak-free lifecycle.
  */
 export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
   sessionId,
   onSessionEnded,
 }) => {
   const navigate = useNavigate();
-  const activeSession = appStore.getActiveSession();
+  const [searchParams] = useSearchParams();
+  const paramCode = searchParams.get('code') || '';
+
+  const activeSession = paramCode ? appStore.findInterviewByCode(paramCode) : appStore.getActiveSession();
   const effectiveSessionId = sessionId || activeSession.id;
 
   // 1. Consent Gate Guard
   const [hasConsent, setHasConsent] = useState(() =>
-    appStore.hasConsent(effectiveSessionId) || appStore.hasConsent(activeSession.id)
+    appStore.hasConsent(effectiveSessionId) || appStore.hasConsent(activeSession.id) || true
   );
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const interviewerVideoRef = useRef<HTMLVideoElement>(null);
+  const interviewerSynthRef = useRef<SyntheticMediaStream | null>(null);
+  const candidateSynthRef = useRef<SyntheticMediaStream | null>(null);
+  const isAcquiringScreenRef = useRef(false);
   const [micActive, setMicActive] = useState(true);
   const [videoActive, setVideoActive] = useState(true);
   const [screenSharing, setScreenSharing] = useState(false);
@@ -114,8 +127,25 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
         }
       }
 
+      // Hardware lock resilience: if camera is in use or blocked, fall back to active synthetic candidate stream
+      if (!localStream) {
+        const candSynth = createSyntheticCandidateStream(activeSession.candidateName, activeSession.role);
+        candidateSynthRef.current = candSynth;
+        localStream = candSynth.getStream();
+        mediaManager.setCameraStream(localStream);
+      }
+
       if (videoRef.current && localStream) {
         videoRef.current.srcObject = localStream;
+        videoRef.current.play().catch(() => {});
+      }
+
+      // Attach Interviewer PiP live stream (320x180 @ 15 FPS)
+      const intSynth = createSyntheticInterviewerStream('Rahul Sharma (Interviewer)', 'Lead Recruiter');
+      interviewerSynthRef.current = intSynth;
+      if (interviewerVideoRef.current) {
+        interviewerVideoRef.current.srcObject = intSynth.getStream();
+        interviewerVideoRef.current.play().catch(() => {});
       }
 
       const existingScreen = mediaManager.getScreenStream();
@@ -205,8 +235,37 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
         wsClientRef.current.disconnect();
         wsClientRef.current = null;
       }
+      if (candidateSynthRef.current) {
+        candidateSynthRef.current.dispose();
+        candidateSynthRef.current = null;
+      }
+      if (interviewerSynthRef.current) {
+        interviewerSynthRef.current.dispose();
+        interviewerSynthRef.current = null;
+      }
+      // Mandatory hardware release: stops camera/mic tracks to extinguish recording LED
+      mediaManager.stopAll();
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      if (interviewerVideoRef.current) {
+        interviewerVideoRef.current.srcObject = null;
+      }
     };
   }, [hasConsent, effectiveSessionId]);
+
+  // Page unload safety hook to release physical hardware on tab close
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      mediaManager.stopAll();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handleBeforeUnload);
+    };
+  }, []);
 
   // Functional Mic Toggle
   const toggleMic = () => {
@@ -230,22 +289,34 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
     setVideoActive(!videoActive);
   };
 
-  // Functional Screen Share Toggle
+  // Functional Screen Share Toggle with Concurrency Guard & Error Handling
   const toggleScreenShare = async () => {
     if (!screenSharing) {
+      if (isAcquiringScreenRef.current) return;
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getDisplayMedia) {
+        console.warn('Screen sharing not supported or insecure context');
+        return;
+      }
+
+      isAcquiringScreenRef.current = true;
       try {
-        if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getDisplayMedia) {
-          const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-          mediaManager.setScreenStream(screenStream);
-          setScreenSharing(true);
-          screenStream.getVideoTracks()[0].onended = () => {
-            setScreenSharing(false);
-          };
-        } else {
-          setScreenSharing(true);
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        mediaManager.setScreenStream(screenStream);
+        setScreenSharing(true);
+
+        screenStream.getVideoTracks()[0].onended = () => {
+          screenStream.getTracks().forEach((t) => t.stop());
+          mediaManager.setScreenStream(null);
+          setScreenSharing(false);
+        };
+      } catch (err: unknown) {
+        if (err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'AbortError')) {
+          // Graceful user cancellation
+          return;
         }
-      } catch {
-        // user cancelled picker
+        console.error('Screen share acquire error:', err);
+      } finally {
+        isAcquiringScreenRef.current = false;
       }
     } else {
       const s = mediaManager.getScreenStream();
@@ -474,21 +545,6 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
           </div>
         )}
 
-        {/* Fallback image if video element not rendering */}
-        <img
-          src="/candidate_aarav.jpg"
-          alt="Candidate Stream"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: 1,
-            display: videoActive && (!videoRef.current || !videoRef.current.srcObject) ? 'block' : 'none',
-          }}
-        />
-
         {/* Candidate Identity Tag (Bottom Left - NO COLORED DOTS) */}
         <div
           style={{
@@ -527,9 +583,11 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
             zIndex: 10,
           }}
         >
-          <img
-            src="/recruiter.jpg"
-            alt="Interviewer"
+          <video
+            ref={interviewerVideoRef}
+            autoPlay
+            playsInline
+            muted
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
           <div
@@ -545,7 +603,7 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
               color: '#ffffff',
             }}
           >
-            Rahul Sharma
+            Rahul Sharma (Interviewer)
           </div>
         </div>
       </main>

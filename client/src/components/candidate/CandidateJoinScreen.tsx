@@ -800,7 +800,7 @@ export const CandidateJoinScreen: React.FC<CandidateJoinScreenProps> = ({
       if (onJoinSuccess) {
         onJoinSuccess();
       } else {
-        navigate('/interview/candidate');
+        navigate(`/interview/candidate?code=${encodeURIComponent(clean)}`);
       }
     } catch {
       setError('Invalid interview code. Please verify and try again.');
