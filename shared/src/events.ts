@@ -30,6 +30,9 @@ export const EVENT_TYPES = {
   FACE_RETURNED: 'face_returned',
   MULTIPLE_FACES: 'multiple_faces',
   FACE_ORIENTATION_OFF: 'face_orientation_off',
+  UNUSUAL_GAZE_DIRECTION: 'unusual_gaze_direction',
+  FACE_SWAP_DETECTED: 'face_swap_detected',
+  VOICE_CLONING_DETECTED: 'voice_cloning_detected',
   AUDIO_SILENCE_EXTENDED: 'audio_silence_extended',
   AUDIO_ACTIVITY_DETECTED: 'audio_activity_detected',
   TAB_HIDDEN: 'tab_hidden',
@@ -40,3 +43,4 @@ export const EVENT_TYPES = {
 } as const;
 
 export type EventType = (typeof EVENT_TYPES)[keyof typeof EVENT_TYPES];
+
