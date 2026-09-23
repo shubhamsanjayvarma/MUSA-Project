@@ -46,12 +46,15 @@ describe('AuthSwitch and Demo Components', () => {
     expect(html).not.toContain('images.unsplash.com');
   });
 
-  it('renders Google sign in button with accessible label', () => {
+  it('renders Google sign in button with accessible label and omits dummy social providers', () => {
     const html = renderToStaticMarkup(<AuthSwitch />);
     
     expect(html).toContain('aria-label="Sign in with Google"');
-    expect(html).toContain('Or sign in with social platforms');
-    expect(html).toContain('Or sign up with social platforms');
+    expect(html).toContain('Or continue with');
+    expect(html).toContain('Sign in with Google');
+    expect(html).not.toContain('Sign in with Facebook');
+    expect(html).not.toContain('Sign in with Twitter');
+    expect(html).not.toContain('Sign in with LinkedIn');
   });
 
   it('renders loading indicators and disabled states when isLoading is true', () => {
@@ -59,6 +62,13 @@ describe('AuthSwitch and Demo Components', () => {
     
     expect(html).toContain('value="Processing..."');
     expect(html).toContain('disabled');
+  });
+
+  it('renders see password toggle button inside password input capsule', () => {
+    const html = renderToStaticMarkup(<AuthSwitch />);
+    
+    expect(html).toContain('toggle-password-btn');
+    expect(html).toContain('aria-label="Show password"');
   });
 
   it('correctly calculates user avatar initials and handles fallbacks', () => {
