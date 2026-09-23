@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateRisk, getRiskState } from './engine.js';
+import { calculateRisk, getRiskState, evaluateCleanRecovery } from './engine.js';
 import { DetectionEvent, DEFAULT_RISK_CONFIG } from '@interviewshield/shared';
 
 describe('Risk Engine Unit Tests', () => {
@@ -199,5 +199,108 @@ describe('Risk Engine Unit Tests', () => {
     const res2 = calculateRisk(input);
 
     expect(res1).toEqual(res2);
+  });
+
+  describe('PPT Threat Signals & Deepfake Penalties', () => {
+    it('should deduct 15 points for face_swap_detected with 30s cooldown', () => {
+      const result = calculateRisk({
+        currentScore: 100,
+        peakScore: 100,
+        lastAnomalyTimestamp: null,
+        lastEventTimes: {},
+        newEvent: makeEvent('face_swap_detected', 'critical', 1.0, now),
+        currentTimestamp: now,
+      });
+
+      expect(result.score).toBe(85);
+      expect(result.deductionApplied).toBe(-15);
+      expect(result.explanation).toContain('Potential face manipulation');
+
+      // Cooldown active after 10s (cooldown is 30s)
+      const cdResult = calculateRisk({
+        currentScore: result.score,
+        peakScore: result.updatedPeakScore,
+        lastAnomalyTimestamp: result.updatedLastAnomalyTimestamp,
+        lastEventTimes: result.updatedLastEventTimes,
+        newEvent: makeEvent('face_swap_detected', 'critical', 1.0, now + 10000),
+        currentTimestamp: now + 10000,
+      });
+      expect(cdResult.score).toBe(85);
+      expect(cdResult.cooldownActive).toBe(true);
+      expect(cdResult.explanation).toContain('Face swap artifact');
+    });
+
+    it('should deduct 15 points for voice_cloning_detected', () => {
+      const result = calculateRisk({
+        currentScore: 100,
+        peakScore: 100,
+        lastAnomalyTimestamp: null,
+        lastEventTimes: {},
+        newEvent: makeEvent('voice_cloning_detected', 'critical', 1.0, now),
+        currentTimestamp: now,
+      });
+
+      expect(result.score).toBe(85);
+      expect(result.deductionApplied).toBe(-15);
+      expect(result.explanation).toContain('Synthetic voice clone artifact');
+    });
+
+    it('should deduct 3 points for unusual_gaze_direction', () => {
+      const result = calculateRisk({
+        currentScore: 100,
+        peakScore: 100,
+        lastAnomalyTimestamp: null,
+        lastEventTimes: {},
+        newEvent: makeEvent('unusual_gaze_direction', 'medium', 1.0, now),
+        currentTimestamp: now,
+      });
+
+      expect(result.score).toBe(97);
+      expect(result.deductionApplied).toBe(-3);
+      expect(result.explanation).toContain('Candidate gaze directed away');
+    });
+  });
+
+  describe('Clean Recovery Evaluation', () => {
+    it('should calculate pure-function clean recovery accurately', () => {
+      // 3 clean minutes = +6 recovery
+      const res = evaluateCleanRecovery(70, 90, now, now + 180000);
+      expect(res.changed).toBe(true);
+      expect(res.recoveryApplied).toBe(6);
+      expect(res.score).toBe(76);
+      expect(res.state).toBe('attention');
+      expect(res.updatedLastAnomalyTimestamp).toBe(now + 180000);
+    });
+
+    it('should cap recovery at peakScore', () => {
+      // 10 clean minutes = +20, but peakScore is 85
+      const res = evaluateCleanRecovery(80, 85, now, now + 600000);
+      expect(res.score).toBe(85);
+      expect(res.recoveryApplied).toBe(20);
+    });
+
+    it('should not recover if clean duration is under 1 minute', () => {
+      const res = evaluateCleanRecovery(80, 100, now, now + 45000);
+      expect(res.changed).toBe(false);
+      expect(res.recoveryApplied).toBe(0);
+      expect(res.score).toBe(80);
+    });
+
+    it('should apply clean recovery when an informational event arrives after elapsed clean time', () => {
+      const result = calculateRisk({
+        currentScore: 70,
+        peakScore: 90,
+        lastAnomalyTimestamp: now,
+        lastEventTimes: {},
+        newEvent: makeEvent('tab_visible', 'info', 1.0, now + 120000),
+        currentTimestamp: now + 120000,
+      });
+
+      // 2 clean minutes = +4
+      expect(result.score).toBe(74);
+      expect(result.recoveryApplied).toBe(4);
+      expect(result.changed).toBe(true);
+      expect(result.explanation).toContain('+4 recovery applied');
+    });
   });
 });

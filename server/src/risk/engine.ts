@@ -31,6 +31,18 @@ export interface RiskCalculationResult {
   updatedPeakScore: number;
 }
 
+export interface CleanRecoveryResult {
+  score: number;
+  previousScore: number;
+  state: RiskState;
+  previousState: RiskState;
+  changed: boolean;
+  recoveryApplied: number;
+  explanation: string;
+  updatedLastAnomalyTimestamp: number | null;
+  updatedPeakScore: number;
+}
+
 export const getRiskState = (score: number, thresholds: RiskStateThresholds): RiskState => {
   if (score >= thresholds.normal) return 'normal';
   if (score >= thresholds.attention) return 'attention';
@@ -38,11 +50,75 @@ export const getRiskState = (score: number, thresholds: RiskStateThresholds): Ri
   return 'high_risk';
 };
 
+export function evaluateCleanRecovery(
+  currentScore: number,
+  peakScore: number,
+  lastAnomalyTimestamp: number | null,
+  currentTimestamp: number,
+  config: RiskWeightConfig = DEFAULT_RISK_CONFIG
+): CleanRecoveryResult {
+  const previousScore = currentScore;
+  const previousState = getRiskState(currentScore, config.thresholds);
+
+  if (lastAnomalyTimestamp === null || currentTimestamp <= lastAnomalyTimestamp) {
+    return {
+      score: Math.round(currentScore),
+      previousScore: Math.round(previousScore),
+      state: previousState,
+      previousState,
+      changed: false,
+      recoveryApplied: 0,
+      explanation: `No clean time recovery eligible. Current score: ${Math.round(currentScore)}.`,
+      updatedLastAnomalyTimestamp: lastAnomalyTimestamp,
+      updatedPeakScore: peakScore,
+    };
+  }
+
+  const cleanMs = currentTimestamp - lastAnomalyTimestamp;
+  const cleanMinutes = Math.floor(cleanMs / 60000);
+  if (cleanMinutes <= 0) {
+    return {
+      score: Math.round(currentScore),
+      previousScore: Math.round(previousScore),
+      state: previousState,
+      previousState,
+      changed: false,
+      recoveryApplied: 0,
+      explanation: `Clean duration under 1 minute (${Math.round(cleanMs / 1000)}s). Current score: ${Math.round(currentScore)}.`,
+      updatedLastAnomalyTimestamp: lastAnomalyTimestamp,
+      updatedPeakScore: peakScore,
+    };
+  }
+
+  const recoveryApplied = cleanMinutes * config.recoveryRate;
+  const newScore = Math.min(currentScore + recoveryApplied, peakScore);
+  const updatedLastAnomalyTimestamp = lastAnomalyTimestamp + cleanMinutes * 60000;
+  const newState = getRiskState(newScore, config.thresholds);
+  const changed = Math.round(newScore) !== Math.round(previousScore);
+
+  return {
+    score: Math.round(newScore),
+    previousScore: Math.round(previousScore),
+    state: newState,
+    previousState,
+    changed,
+    recoveryApplied,
+    explanation: changed
+      ? `Recovered +${recoveryApplied} points (${cleanMinutes} clean min). Score: ${Math.round(previousScore)} → ${Math.round(newScore)}.`
+      : `Score capped at peak ${peakScore}.`,
+    updatedLastAnomalyTimestamp,
+    updatedPeakScore: Math.max(peakScore, newScore),
+  };
+}
+
 const EVENT_DESCRIPTIONS: Record<string, string> = {
   face_absent: 'No face detected in camera',
   face_returned: 'Face returned to camera frame',
   multiple_faces: 'Multiple faces detected in frame',
   face_orientation_off: 'Candidate appeared to look away from camera',
+  unusual_gaze_direction: 'Candidate gaze directed away from interview display',
+  face_swap_detected: 'Potential face manipulation or synthetic swap artifact detected',
+  voice_cloning_detected: 'Synthetic voice clone artifact detected',
   tab_hidden: 'Candidate switched away from interview tab',
   tab_visible: 'Candidate returned to interview tab',
   screen_share_stopped: 'Screen sharing was stopped',
@@ -57,6 +133,9 @@ const EVENT_LABELS: Record<string, string> = {
   face_returned: 'Face return',
   multiple_faces: 'Multiple faces',
   face_orientation_off: 'Face orientation deviation',
+  unusual_gaze_direction: 'Gaze deviation',
+  face_swap_detected: 'Face swap artifact',
+  voice_cloning_detected: 'Voice cloning anomaly',
   tab_hidden: 'Tab switch',
   tab_visible: 'Tab focus restored',
   screen_share_stopped: 'Screen share revocation',
@@ -125,51 +204,61 @@ export function calculateRisk(input: RiskCalculationInput): RiskCalculationResul
   let recoveryApplied = 0;
   let cooldownActive = false;
 
-  // 1. Skip info-severity events (they do not deduct from score)
-  if (newEvent.severity === 'info') {
-    return {
-      score: Math.round(currentScore),
-      previousScore: Math.round(previousScore),
-      state: previousState,
-      previousState,
-      changed: false,
-      explanation: `Informational event: ${EVENT_DESCRIPTIONS[newEvent.eventType] || newEvent.eventType} at ${formatTime(newEvent.timestamp)}.`,
-      deductionApplied: 0,
-      recoveryApplied: 0,
-      cooldownActive: false,
-      updatedLastEventTimes: lastEventTimes,
-      updatedLastAnomalyTimestamp: lastAnomalyTimestamp,
-      updatedPeakScore: peakScore,
-    };
-  }
-
-  // 2. Apply recovery for elapsed clean behavior minutes
+  // 1. Evaluate clean recovery if elapsed clean time exists
   if (lastAnomalyTimestamp !== null && currentTimestamp > lastAnomalyTimestamp) {
     const cleanMs = currentTimestamp - lastAnomalyTimestamp;
     const cleanMinutes = Math.floor(cleanMs / 60000);
     if (cleanMinutes > 0) {
       recoveryApplied = cleanMinutes * config.recoveryRate;
       currentScore = Math.min(currentScore + recoveryApplied, peakScore);
+      lastAnomalyTimestamp = lastAnomalyTimestamp + cleanMinutes * 60000;
     }
+  }
+
+  // 2. Skip deduction for info-severity events
+  if (newEvent.severity === 'info') {
+    const newState = getRiskState(currentScore, config.thresholds);
+    const changed = Math.round(currentScore) !== Math.round(previousScore);
+    const eventDesc = EVENT_DESCRIPTIONS[newEvent.eventType] || newEvent.eventType;
+    const timeStr = formatTime(newEvent.timestamp);
+    const explanation = recoveryApplied > 0
+      ? `Informational event: ${eventDesc} at ${timeStr}. +${recoveryApplied} recovery applied from clean behavior.`
+      : `Informational event: ${eventDesc} at ${timeStr}.`;
+
+    return {
+      score: Math.round(currentScore),
+      previousScore: Math.round(previousScore),
+      state: newState,
+      previousState,
+      changed,
+      explanation,
+      deductionApplied: 0,
+      recoveryApplied,
+      cooldownActive: false,
+      updatedLastEventTimes: lastEventTimes,
+      updatedLastAnomalyTimestamp: lastAnomalyTimestamp,
+      updatedPeakScore: Math.max(peakScore, currentScore),
+    };
   }
 
   // 3. Check configured weight
   const baseWeight = config.weights[newEvent.eventType];
   if (baseWeight === undefined) {
-    // Unregistered event type: do not mutate score
+    const newState = getRiskState(currentScore, config.thresholds);
+    const changed = Math.round(currentScore) !== Math.round(previousScore);
     return {
       score: Math.round(currentScore),
       previousScore: Math.round(previousScore),
-      state: previousState,
+      state: newState,
       previousState,
-      changed: false,
+      changed,
       explanation: `Unrecognized event type '${newEvent.eventType}'. Score unchanged.`,
       deductionApplied: 0,
-      recoveryApplied: 0,
+      recoveryApplied,
       cooldownActive: false,
       updatedLastEventTimes: lastEventTimes,
       updatedLastAnomalyTimestamp: lastAnomalyTimestamp,
-      updatedPeakScore: peakScore,
+      updatedPeakScore: Math.max(peakScore, currentScore),
     };
   }
 
