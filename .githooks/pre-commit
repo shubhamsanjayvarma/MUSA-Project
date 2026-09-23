@@ -1,0 +1,46 @@
+#!/bin/sh
+# ==============================================================================
+# Git Pre-Commit Guardrail Hook
+# Repository: Universal_Project_Boilerplate
+# Enforces: Rule 29 (Local AGENTS.md Isolation) & Rule 30 (spec_universal Immutability)
+# ==============================================================================
+
+# Inspect staged files for protected foundation paths:
+# Protects spec_universal/ and .agents/AGENTS.md across all downstream cloned projects.
+BLOCKED_FILES=$(git diff --cached --name-only | grep -E '^(\.agents/AGENTS\.md|spec_universal/)')
+
+if [ -n "$BLOCKED_FILES" ]; then
+  # Maintenance bypass: Only permitted when explicitly authorized during master boilerplate maintenance
+  if [ "$ALLOW_UNIVERSAL_SPEC_MUTATION" = "1" ]; then
+    echo ""
+    echo "[GUARDRAIL NOTICE] ALLOW_UNIVERSAL_SPEC_MUTATION=1 detected."
+    echo "Master boilerplate foundation maintenance authorized. Proceeding with commit."
+    echo ""
+    exit 0
+  fi
+
+  echo ""
+  echo "================================================================================"
+  echo "  COMMIT REJECTED BY AUTOMATED GUARDRAIL"
+  echo "================================================================================"
+  echo "The following files are strictly protected and blocked from being committed:"
+  echo ""
+  echo "$BLOCKED_FILES"
+  echo ""
+  echo "Violations:"
+  echo "  - Rule 29: .agents/AGENTS.md is isolated and protected."
+  echo "  - Rule 30: spec_universal/ foundation templates are immutable downstream."
+  echo ""
+  echo "Action Required:"
+  echo "  Unstage the protected files before committing:"
+  echo "    git restore --staged .agents/AGENTS.md"
+  echo "    git restore --staged spec_universal/"
+  echo ""
+  echo "  (Project-specific specifications belong in the 'spec/' folder, which CAN be committed)."
+  echo "  (Master boilerplate maintainers must explicitly set ALLOW_UNIVERSAL_SPEC_MUTATION=1)."
+  echo "================================================================================"
+  echo ""
+  exit 1
+fi
+
+exit 0

@@ -46,3 +46,10 @@ coverage/
 # Database
 *.sqlite
 *.sqlite3
+.pgdata/
+
+# Local agent, knowledge graph, and universal template isolation
+.agents/
+spec_universal/
+graphify-out/
+
