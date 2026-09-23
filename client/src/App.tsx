@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter, Routes, Route, Link, Navigate, useParams, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
 import {
   Shield,
   CheckCircle,
@@ -36,6 +36,7 @@ import {
   RecruiterReviewData,
 } from './services/api.js';
 import { SystemCheck, SystemCheckResult } from './components/SystemCheck.js';
+import { HomePage } from './components/HomePage.js';
 import { mediaManager } from './services/media-manager.js';
 import { WSClient, ConnectionState } from './services/ws-client.js';
 import { EventBuffer } from './services/event-buffer.js';
@@ -204,8 +205,8 @@ const LoginPage: React.FC = () => {
   );
 };
 
-// Create Interview Modal
-const CreateInterviewModal: React.FC<{
+// Legacy Create Interview Modal
+const LegacyCreateInterviewModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   onCreated: (interview: Interview) => void;
@@ -481,7 +482,7 @@ const DashboardPage: React.FC = () => {
         </button>
       </div>
 
-      <CreateInterviewModal
+      <LegacyCreateInterviewModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onCreated={(newInv) => {
@@ -1660,24 +1661,95 @@ const CandidateInterviewPage: React.FC = () => {
   );
 };
 
+import { RecruiterLayout } from './components/layout/RecruiterLayout.js';
+import { DashboardScreen } from './components/screens/DashboardScreen.js';
+import { CreateInterviewModal } from './components/screens/CreateInterviewModal.js';
+import { JoinWithCodeScreen } from './components/screens/JoinWithCodeScreen.js';
+
+// App Layout for Legacy/Candidate Pages
+const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <div className="app-container">
+      <Header />
+      <main className="main-content">
+        {children}
+      </main>
+    </div>
+  );
+};
+
+import { CandidateSystemCheckScreen } from './components/screens/CandidateSystemCheckScreen.js';
+import { CandidateConsentScreen } from './components/screens/CandidateConsentScreen.js';
+import { InInterviewCandidateScreen } from './components/screens/InInterviewCandidateScreen.js';
+import { InInterviewRecruiterScreen } from './components/screens/InInterviewRecruiterScreen.js';
+import { InterviewEndedScreen } from './components/screens/InterviewEndedScreen.js';
+import { InterviewReportScreen } from './components/screens/InterviewReportScreen.js';
+import { CandidatesScreen } from './components/screens/CandidatesScreen.js';
+import { ReportsAnalyticsScreen } from './components/screens/ReportsAnalyticsScreen.js';
+import { SettingsScreen } from './components/screens/SettingsScreen.js';
+import { ProfileScreen } from './components/screens/ProfileScreen.js';
+import { PricingScreen } from './components/screens/PricingScreen.js';
+
+// Enhanced Recruiter Dashboard Container
+const ModernDashboardPage: React.FC = () => {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const navigate = useNavigate();
+
+  return (
+    <RecruiterLayout
+      onNewInterviewClick={() => setIsCreateModalOpen(true)}
+      onJoinCodeClick={() => navigate('/join')}
+    >
+      <DashboardScreen
+        onNewInterviewClick={() => setIsCreateModalOpen(true)}
+        onJoinCodeClick={() => navigate('/join')}
+      />
+
+      <CreateInterviewModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccessNavigate={(url: string) => navigate(url)}
+      />
+    </RecruiterLayout>
+  );
+};
+
 // Main App Router
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <div className="app-container">
-        <Header />
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/dashboard/:interviewId" element={<SessionDetailPage />} />
-            <Route path="/join/:token" element={<CandidateJoinPage />} />
-            <Route path="/interview/:sessionId" element={<CandidateInterviewPage />} />
-            <Route path="*" element={<div className="card"><h3>404: Page Not Found</h3></div>} />
-          </Routes>
-        </main>
-      </div>
+      <Routes>
+        {/* Recruiter Screens */}
+        <Route path="/" element={<ModernDashboardPage />} />
+        <Route path="/dashboard" element={<ModernDashboardPage />} />
+        <Route path="/interviews" element={<ModernDashboardPage />} />
+        <Route path="/candidates" element={<RecruiterLayout><CandidatesScreen /></RecruiterLayout>} />
+        <Route path="/reports" element={<RecruiterLayout><ReportsAnalyticsScreen /></RecruiterLayout>} />
+        <Route path="/analytics" element={<RecruiterLayout><ReportsAnalyticsScreen /></RecruiterLayout>} />
+        <Route path="/report" element={<RecruiterLayout><InterviewReportScreen /></RecruiterLayout>} />
+        <Route path="/settings" element={<RecruiterLayout><SettingsScreen /></RecruiterLayout>} />
+        <Route path="/profile" element={<RecruiterLayout><ProfileScreen /></RecruiterLayout>} />
+        <Route path="/pricing" element={<PricingScreen />} />
+        <Route path="/upgrade" element={<PricingScreen />} />
+
+        {/* Candidate Flow Screens */}
+        <Route path="/join" element={<JoinWithCodeScreen />} />
+        <Route path="/join-code" element={<JoinWithCodeScreen />} />
+        <Route path="/system-check" element={<CandidateSystemCheckScreen />} />
+        <Route path="/consent" element={<CandidateConsentScreen />} />
+        <Route path="/interview/candidate" element={<InInterviewCandidateScreen />} />
+        <Route path="/interview/recruiter" element={<InInterviewRecruiterScreen />} />
+        <Route path="/interview-ended" element={<InterviewEndedScreen />} />
+
+        {/* Legacy & Fallback Routes */}
+        <Route path="/landing" element={<HomePage />} />
+        <Route path="/legacy-dashboard" element={<MainLayout><DashboardPage /></MainLayout>} />
+        <Route path="/join/:token" element={<MainLayout><CandidateJoinPage /></MainLayout>} />
+        <Route path="/login" element={<MainLayout><LoginPage /></MainLayout>} />
+        <Route path="/dashboard/:interviewId" element={<MainLayout><SessionDetailPage /></MainLayout>} />
+        <Route path="/interview/:sessionId" element={<MainLayout><CandidateInterviewPage /></MainLayout>} />
+        <Route path="*" element={<MainLayout><div className="card"><h3>404: Page Not Found</h3></div></MainLayout>} />
+      </Routes>
     </BrowserRouter>
   );
 };

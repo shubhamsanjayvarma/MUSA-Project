@@ -1,0 +1,1204 @@
+/* ==========================================================================
+   InterviewShield — Home Page Styles (High-Fidelity UI/UX)
+   ========================================================================== */
+
+.ishield-home {
+  --hp-bg: #fbfaf8;
+  --hp-text-primary: #0f172a;
+  --hp-text-secondary: #475569;
+  --hp-text-muted: #64748b;
+  --hp-text-light: #94a3b8;
+  --hp-primary: #2563eb;
+  --hp-primary-hover: #1d4ed8;
+  --hp-primary-light: #eff6ff;
+  --hp-primary-border: #bfdbfe;
+  --hp-accent: #3b82f6;
+  --hp-border: #e2e8f0;
+  --hp-border-subtle: #f1f5f9;
+  --hp-card-bg: #ffffff;
+  --hp-success: #16a34a;
+  --hp-success-bg: #ecfdf5;
+  --hp-success-border: #bbf7d0;
+  --hp-danger: #ef4444;
+  --hp-font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  background-color: var(--hp-bg);
+  color: var(--hp-text-primary);
+  font-family: var(--hp-font-sans);
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Background Subtle Lighting / Warm Ambiance */
+.ishield-home::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 600px;
+  background: radial-gradient(circle at 50% 0%, rgba(243, 244, 246, 0.8) 0%, rgba(251, 250, 248, 0) 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Top Navigation Bar
+   -------------------------------------------------------------------------- */
+.ishield-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(251, 250, 248, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+  height: 72px;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.ishield-nav-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ishield-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--hp-text-primary);
+}
+
+.ishield-logo-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ishield-brand-text {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+}
+
+.ishield-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ishield-nav-item {
+  position: relative;
+}
+
+.ishield-nav-link {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--hp-text-secondary);
+  text-decoration: none;
+  padding: 8px 0;
+  transition: color 0.15s ease;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.ishield-nav-link:hover {
+  color: var(--hp-text-primary);
+}
+
+.ishield-nav-link.active {
+  color: var(--hp-primary);
+  font-weight: 600;
+}
+
+.ishield-nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0px;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background: var(--hp-primary);
+  border-radius: 2px;
+}
+
+.ishield-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ishield-btn-signin {
+  padding: 9px 20px;
+  border-radius: 9px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #1e293b;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.ishield-btn-signin:hover {
+  background: #f8fafc;
+  border-color: #9ca3af;
+  color: #0f172a;
+}
+
+.ishield-btn-getstarted {
+  padding: 9px 22px;
+  border-radius: 9px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--hp-primary);
+  border: 1px solid var(--hp-primary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ishield-btn-getstarted:hover {
+  background: var(--hp-primary-hover);
+  border-color: var(--hp-primary-hover);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   Hero Section
+   -------------------------------------------------------------------------- */
+.ishield-hero {
+  position: relative;
+  z-index: 1;
+  padding: 56px 32px 64px 32px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.ishield-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.22fr;
+  gap: 48px;
+  align-items: center;
+}
+
+.ishield-hero-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.ishield-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+.ishield-hero-title {
+  font-size: 3.4rem;
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  color: #0f172a;
+  margin-bottom: 22px;
+}
+
+.ishield-hero-title .highlight {
+  display: block;
+  color: var(--hp-primary);
+}
+
+.ishield-hero-desc {
+  font-size: 1.0625rem;
+  line-height: 1.62;
+  color: #475569;
+  max-width: 480px;
+  margin-bottom: 34px;
+}
+
+.ishield-hero-cta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 36px;
+  flex-wrap: wrap;
+}
+
+.ishield-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--hp-primary);
+  color: #ffffff;
+  padding: 13px 28px;
+  border-radius: 9999px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
+}
+
+.ishield-cta-primary:hover {
+  background: var(--hp-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+}
+
+.ishield-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #ffffff;
+  color: #1e293b;
+  padding: 13px 28px;
+  border-radius: 9999px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.ishield-cta-secondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.ishield-trust-badges {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.ishield-badge-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.ishield-badge-item svg {
+  color: #475569;
+}
+
+/* --------------------------------------------------------------------------
+   Interactive Live Interview Mockup Window (Hero Right)
+   -------------------------------------------------------------------------- */
+.ishield-mockup-wrapper {
+  position: relative;
+}
+
+.ishield-mockup-window {
+  background: #ffffff;
+  border-radius: 22px;
+  box-shadow: 0 20px 50px -12px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(15, 23, 42, 0.06);
+  display: grid;
+  grid-template-columns: 1fr 275px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  min-height: 420px;
+  transition: box-shadow 0.3s ease;
+}
+
+.ishield-mockup-window:hover {
+  box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+/* Video Call Left Pane (Dark) */
+.ishield-video-pane {
+  background: #18191e;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: 16px 18px;
+}
+
+.ishield-video-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 10;
+}
+
+.ishield-video-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f1f5f9;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.ishield-live-dot {
+  width: 9px;
+  height: 9px;
+  background: #22c55e;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+  animation: pulse-live 2s infinite ease-in-out;
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.15); }
+}
+
+.ishield-video-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #cbd5e1;
+  font-size: 0.8125rem;
+  font-family: var(--font-mono, monospace);
+  font-weight: 500;
+}
+
+.ishield-more-dots {
+  color: #cbd5e1;
+  cursor: pointer;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+}
+
+.ishield-more-dots:hover {
+  opacity: 1;
+}
+
+/* Video Frame Body */
+.ishield-video-body {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.ishield-candidate-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 10%;
+  transform: scale(1.22);
+  transform-origin: center 20%;
+  filter: brightness(0.97) contrast(1.02);
+}
+
+/* Candidate Audio/Name Pill (Bottom Left) */
+.ishield-candidate-pill {
+  position: absolute;
+  bottom: 66px;
+  left: 18px;
+  z-index: 10;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #f8fafc;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.ishield-waveform-icon {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.ishield-waveform-icon span {
+  width: 2.5px;
+  background: #22c55e;
+  border-radius: 1px;
+}
+
+.ishield-waveform-icon span:nth-child(1) { height: 6px; animation: wave 1.2s infinite ease-in-out; }
+.ishield-waveform-icon span:nth-child(2) { height: 11px; animation: wave 1.2s infinite ease-in-out 0.2s; }
+.ishield-waveform-icon span:nth-child(3) { height: 8px; animation: wave 1.2s infinite ease-in-out 0.4s; }
+
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.7); }
+  50% { transform: scaleY(1.3); }
+}
+
+/* Recruiter Picture-in-Picture (Top Right) */
+.ishield-pip-box {
+  position: absolute;
+  top: 48px;
+  right: 18px;
+  width: 96px;
+  height: 72px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  z-index: 10;
+}
+
+.ishield-pip-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.ishield-pip-label {
+  position: absolute;
+  bottom: 4px;
+  left: 6px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #ffffff;
+  font-size: 0.625rem;
+  font-weight: 500;
+  padding: 1px 5px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+}
+
+/* Floating Call Controls (Bottom Center) */
+.ishield-call-controls {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ishield-ctrl-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(45, 55, 72, 0.85);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  backdrop-filter: blur(6px);
+}
+
+.ishield-ctrl-btn:hover {
+  background: rgba(74, 85, 104, 0.95);
+  transform: scale(1.05);
+}
+
+.ishield-ctrl-btn.off {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.ishield-ctrl-btn.hangup {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);
+}
+
+.ishield-ctrl-btn.hangup:hover {
+  background: #dc2626;
+  transform: scale(1.08);
+}
+
+/* Monitoring Panel Right (Light) */
+.ishield-telemetry-pane {
+  background: #ffffff;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.ishield-pane-tabs {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 16px;
+  padding-bottom: 4px;
+}
+
+.ishield-pane-tab {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748b;
+  padding: 6px 10px;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s ease;
+  border: none;
+  background: none;
+}
+
+.ishield-pane-tab:hover {
+  color: #0f172a;
+}
+
+.ishield-pane-tab.active {
+  color: var(--hp-primary);
+  font-weight: 600;
+}
+
+.ishield-pane-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 6px;
+  right: 6px;
+  height: 2px;
+  background: var(--hp-primary);
+  border-radius: 2px;
+}
+
+.ishield-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
+}
+
+.ishield-monitor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.ishield-monitor-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+}
+
+.ishield-monitor-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.ishield-monitor-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: var(--hp-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ishield-pill-badge {
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.ishield-pill-badge.normal {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #d1fae5;
+}
+
+.ishield-pill-badge.active {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+/* Integrity Score Section */
+.ishield-score-section {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 14px;
+}
+
+.ishield-score-gauge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.ishield-gauge-ring {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.ishield-gauge-ring svg {
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+
+.ishield-gauge-value {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.ishield-score-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.ishield-score-rating {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.ishield-score-hint {
+  font-size: 0.6875rem;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+/* --------------------------------------------------------------------------
+   Trusted Organizations & Stats Bar
+   -------------------------------------------------------------------------- */
+.ishield-trusted-section {
+  position: relative;
+  z-index: 1;
+  padding: 44px 32px 56px 32px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.ishield-trusted-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #64748b;
+  margin-bottom: 24px;
+}
+
+.ishield-trusted-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 36px;
+  flex-wrap: wrap;
+}
+
+.ishield-logos-row {
+  display: flex;
+  align-items: center;
+  gap: 38px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.ishield-logo-item {
+  display: flex;
+  align-items: center;
+  filter: grayscale(0.15) opacity(0.88);
+  transition: all 0.2s ease;
+}
+
+.ishield-logo-item:hover {
+  filter: grayscale(0) opacity(1);
+  transform: translateY(-1px);
+}
+
+.ishield-stats-divider {
+  width: 1px;
+  height: 48px;
+  background: #e2e8f0;
+}
+
+.ishield-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.ishield-stat-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.ishield-stat-number {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.ishield-stat-desc {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+/* --------------------------------------------------------------------------
+   "How It Works" Section
+   -------------------------------------------------------------------------- */
+.ishield-howitworks {
+  position: relative;
+  z-index: 1;
+  padding: 64px 32px 96px 32px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.ishield-hiw-header {
+  margin-bottom: 56px;
+}
+
+.ishield-hiw-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--hp-primary);
+  margin-bottom: 12px;
+}
+
+.ishield-hiw-title {
+  font-size: 2.15rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  margin-bottom: 12px;
+}
+
+.ishield-hiw-subtitle {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #64748b;
+  max-width: 600px;
+}
+
+.ishield-process-stepper {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px;
+  position: relative;
+}
+
+/* Dotted Connector Line */
+.ishield-stepper-connector {
+  position: absolute;
+  top: 28px;
+  left: 60px;
+  right: 60px;
+  height: 2px;
+  background-image: linear-gradient(to right, #cbd5e1 50%, rgba(255, 255, 255, 0) 0%);
+  background-position: top;
+  background-size: 10px 2px;
+  background-repeat: repeat-x;
+  z-index: 1;
+}
+
+.ishield-step-item {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.ishield-step-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hp-primary);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.04);
+  margin-bottom: 20px;
+  transition: all 0.2s ease;
+}
+
+.ishield-step-item:hover .ishield-step-icon-wrap {
+  transform: translateY(-2px);
+  border-color: #93c5fd;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.12);
+  color: var(--hp-primary-hover);
+}
+
+.ishield-step-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.ishield-step-desc {
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: #64748b;
+}
+
+/* --------------------------------------------------------------------------
+   Extra Sections: Feature Highlights & Enterprise Footer
+   -------------------------------------------------------------------------- */
+.ishield-features-section {
+  padding: 64px 32px 80px 32px;
+  max-width: 1280px;
+  margin: 0 auto;
+  border-top: 1px solid #e2e8f0;
+}
+
+.ishield-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  margin-top: 40px;
+}
+
+.ishield-feature-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 26px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.ishield-feature-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px -6px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.ishield-feat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: var(--hp-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.ishield-feat-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.ishield-feat-desc {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #64748b;
+}
+
+/* Enterprise Footer */
+.ishield-footer {
+  background: #0f172a;
+  color: #94a3b8;
+  padding: 56px 32px 36px 32px;
+  border-top: 1px solid #1e293b;
+}
+
+.ishield-footer-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.ishield-footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #f8fafc;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.ishield-footer-links {
+  display: flex;
+  gap: 24px;
+  font-size: 0.875rem;
+}
+
+.ishield-footer-links a {
+  color: #94a3b8;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.ishield-footer-links a:hover {
+  color: #ffffff;
+}
+
+.ishield-footer-copy {
+  font-size: 0.8125rem;
+  color: #64748b;
+  width: 100%;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #1e293b;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   Modal: Join With Code
+   -------------------------------------------------------------------------- */
+.ishield-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ishield-modal-box {
+  background: #ffffff;
+  border-radius: 16px;
+  max-width: 480px;
+  width: 90%;
+  padding: 32px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  border: 1px solid #e2e8f0;
+  position: relative;
+  animation: scaleUp 0.18s ease-out;
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.ishield-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  color: #64748b;
+  cursor: pointer;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.ishield-modal-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.ishield-modal-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.ishield-modal-desc {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 24px;
+}
+
+.ishield-modal-input-group {
+  margin-bottom: 20px;
+}
+
+.ishield-modal-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+.ishield-modal-input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 0.9375rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 10px;
+  outline: none;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.ishield-modal-input:focus {
+  border-color: var(--hp-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.ishield-modal-submit {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--hp-primary);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ishield-modal-submit:hover {
+  background: var(--hp-primary-hover);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Rules
+   -------------------------------------------------------------------------- */
+@media (max-width: 1080px) {
+  .ishield-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  
+  .ishield-hero-desc {
+    max-width: 100%;
+  }
+
+  .ishield-process-stepper {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 36px;
+  }
+
+  .ishield-stepper-connector {
+    display: none;
+  }
+
+  .ishield-features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .ishield-nav-container {
+    padding: 0 20px;
+  }
+
+  .ishield-nav-links {
+    display: none;
+  }
+
+  .ishield-hero {
+    padding: 36px 20px 48px 20px;
+  }
+
+  .ishield-hero-title {
+    font-size: 2.5rem;
+  }
+
+  .ishield-mockup-window {
+    grid-template-columns: 1fr;
+  }
+
+  .ishield-video-pane {
+    min-height: 280px;
+  }
+
+  .ishield-trusted-section {
+    padding: 32px 20px 40px 20px;
+  }
+
+  .ishield-trusted-grid {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ishield-stats-divider {
+    display: none;
+  }
+
+  .ishield-stats-row {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .ishield-howitworks {
+    padding: 48px 20px 64px 20px;
+  }
+
+  .ishield-process-stepper {
+    grid-template-columns: 1fr;
+  }
+}
