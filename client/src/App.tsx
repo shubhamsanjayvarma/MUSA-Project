@@ -85,9 +85,8 @@ const Header: React.FC = () => {
     <header className="header">
       <div className="brand">
         <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', color: 'inherit' }}>
-          <Shield color="#3b82f6" size={24} />
-          <span>InterviewShield</span>
-          <span className="brand-badge">MVP v1.0</span>
+          <Shield color="#0f172a" size={20} />
+          <span style={{ fontWeight: 600 }}>InterviewShield</span>
         </Link>
       </div>
       <nav style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center' }}>
@@ -238,8 +237,8 @@ const AuthPage: React.FC<{ initialSignUp?: boolean }> = ({ initialSignUp = false
     setAuthError(null);
     setIsLoading(true);
     const form = e.currentTarget;
-    const emailInput = form.querySelector('input[type="email"]') as HTMLInputElement;
-    const passwordInput = form.querySelector('input[type="password"]') as HTMLInputElement;
+    const emailInput = (form.querySelector('input[name="email"]') || form.querySelector('input[type="email"]')) as HTMLInputElement;
+    const passwordInput = (form.querySelector('input[name="password"]') || form.querySelector('input[data-password="true"]') || form.querySelector('input[type="password"]')) as HTMLInputElement;
     const email = emailInput?.value?.trim() || '';
     const password = passwordInput?.value || '';
 
@@ -283,11 +282,11 @@ const AuthPage: React.FC<{ initialSignUp?: boolean }> = ({ initialSignUp = false
     setAuthError(null);
     setIsLoading(true);
     const form = e.currentTarget;
-    const usernameInput = form.querySelector('input[type="text"]') as HTMLInputElement;
+    const usernameInput = (form.querySelector('input[name="username"]') || form.querySelector('input[type="text"]')) as HTMLInputElement;
     const allEmailInputs = form.querySelectorAll('input[type="email"]');
-    const allPasswordInputs = form.querySelectorAll('input[type="password"]');
-    const emailInput = (allEmailInputs[1] || allEmailInputs[0]) as HTMLInputElement;
-    const passwordInput = (allPasswordInputs[1] || allPasswordInputs[0]) as HTMLInputElement;
+    const emailInput = (form.querySelector('input[name="signup-email"]') || allEmailInputs[1] || allEmailInputs[0]) as HTMLInputElement;
+    const allPasswordInputs = form.querySelectorAll('input[data-password="true"]');
+    const passwordInput = (form.querySelector('input[name="signup-password"]') || allPasswordInputs[1] || allPasswordInputs[0] || form.querySelector('input[type="password"]')) as HTMLInputElement;
 
     const username = usernameInput?.value?.trim() || 'Recruiter';
     const email = emailInput?.value?.trim() || '';
@@ -1172,7 +1171,7 @@ const SessionDetailPage: React.FC = () => {
 };
 
 // Candidate Join Page
-const CandidateJoinPage: React.FC = () => {
+export const CandidateJoinPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
@@ -1555,10 +1554,9 @@ const CandidateInterviewPage: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-          {/* Connection badge */}
+          {/* Connection badge without status dots */}
           {connectionState === 'CONNECTED' && (
             <span className="indicator-pill success">
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4ade80' }}></span>
               Connected
             </span>
           )}
@@ -1569,7 +1567,6 @@ const CandidateInterviewPage: React.FC = () => {
           )}
           {connectionState === 'DISCONNECTED' && (
             <span className="indicator-pill danger">
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#f87171' }}></span>
               Disconnected
             </span>
           )}
@@ -1578,9 +1575,9 @@ const CandidateInterviewPage: React.FC = () => {
           <button
             onClick={() => setShowEndModal(true)}
             className="btn btn-outline"
-            style={{ padding: '6px 14px', fontSize: '0.8125rem', color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.4)' }}
+            style={{ padding: '6px 14px', fontSize: '0.8125rem', color: '#b91c1c', borderColor: '#e2e8f0' }}
           >
-            <Power size={14} /> End Interview
+            <Power size={14} /> End Session
           </button>
         </div>
       </div>
@@ -1598,46 +1595,37 @@ const CandidateInterviewPage: React.FC = () => {
         {/* Video Overlay Header */}
         <div className="video-overlay-header">
           <div className="interactive-pill timer-pill">
-            <Clock size={14} color="#94a3b8" />
+            <Clock size={14} color="#64748b" />
             <span>{formatTimer(elapsedSeconds)}</span>
-          </div>
-
-          <div className="interactive-pill">
-            <ShieldCheck size={14} color="#4ade80" />
-            <span>Integrity Shield Active</span>
           </div>
         </div>
 
         {/* Video Overlay Footer */}
         <div className="video-overlay-footer">
           <div style={{ display: 'flex', gap: '8px' }}>
-            <div className="interactive-pill" style={{ padding: '6px 12px' }}>
-              <Camera size={14} color={cameraActive ? '#4ade80' : '#f87171'} />
+            <div className="interactive-pill" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+              <Camera size={13} color={cameraActive ? '#0f172a' : '#b91c1c'} />
               <span>{cameraActive ? 'Camera Live' : 'Camera Off'}</span>
             </div>
-            <div className="interactive-pill" style={{ padding: '6px 12px' }}>
-              {micActive ? <Mic size={14} color="#4ade80" /> : <MicOff size={14} color="#f87171" />}
+            <div className="interactive-pill" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+              {micActive ? <Mic size={13} color="#0f172a" /> : <MicOff size={13} color="#b91c1c military" />}
               <span>{micActive ? 'Mic Active' : 'Mic Muted'}</span>
             </div>
             {screenActive && (
-              <div className="interactive-pill" style={{ padding: '6px 12px' }}>
-                <Monitor size={14} color="#38bdf8" />
+              <div className="interactive-pill" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+                <Monitor size={13} color="#0f172a" />
                 <span>Screen Shared</span>
               </div>
             )}
-          </div>
-
-          <div className="interactive-pill" style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-            Local Verification 2 FPS
           </div>
         </div>
       </div>
 
       {/* Candidate Notice */}
-      <div style={{ padding: '12px 18px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+      <div style={{ padding: '10px 16px', borderRadius: '6px', backgroundColor: '#ffffff', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-secondary)' }}>
-          <Shield size={16} color="var(--color-primary)" />
-          <span>Local session monitoring active. Tab switches and face presence are automatically audited locally.</span>
+          <Shield size={14} color="#0f172a" />
+          <span>Local session monitoring active. Signals are analyzed locally on your device.</span>
         </div>
         <span style={{ fontSize: '0.75rem', color: '#64748b', fontFamily: 'var(--font-mono)' }}>
           Session: {session.id.slice(0, 8)}
@@ -1647,22 +1635,23 @@ const CandidateInterviewPage: React.FC = () => {
       {/* Confirmation Modal for Ending Interview */}
       {showEndModal && (
         <div className="modal-backdrop">
-          <div className="modal-content">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-              <AlertTriangle size={24} color="var(--color-suspicious)" />
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-text)' }}>
-                Conclude Interview?
+          <div className="modal-content" style={{ maxWidth: '400px', padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <AlertTriangle size={18} color="#b91c1c" />
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text)' }}>
+                End Interview?
               </h3>
             </div>
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
-              Are you sure you wish to end this interview session? This will finalize your telemetry record and submit all verification data to the hiring team. Your camera and microphone streams will be immediately stopped.
+            <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', lineHeight: 1.45, marginBottom: '16px' }}>
+              Ending will finalize your assessment session and close media streams.
             </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button
                 type="button"
                 onClick={() => setShowEndModal(false)}
                 disabled={isEnding}
                 className="btn btn-outline"
+                style={{ padding: '6px 14px', fontSize: '0.8125rem' }}
               >
                 Cancel
               </button>
@@ -1671,15 +1660,15 @@ const CandidateInterviewPage: React.FC = () => {
                 onClick={handleEndSession}
                 disabled={isEnding}
                 className="btn btn-primary"
-                style={{ backgroundColor: 'var(--color-high-risk)' }}
+                style={{ backgroundColor: '#b91c1c', padding: '6px 14px', fontSize: '0.8125rem' }}
               >
                 {isEnding ? (
                   <>
-                    <Loader2 size={14} className="animate-spin" /> Concluding...
+                    <Loader2 size={13} className="animate-spin" /> Ending...
                   </>
                 ) : (
                   <>
-                    <Power size={14} /> Yes, End Session
+                    <Power size={13} /> End Session
                   </>
                 )}
               </button>
@@ -1798,7 +1787,7 @@ export const App: React.FC = () => {
         {/* Legacy & Fallback Routes */}
         <Route path="/landing" element={<HomePage />} />
         <Route path="/legacy-dashboard" element={<MainLayout><DashboardPage /></MainLayout>} />
-        <Route path="/join/:token" element={<MainLayout><CandidateJoinPage /></MainLayout>} />
+        <Route path="/join/:token" element={<JoinWithCodeScreen />} />
         {/* Authentication Routes */}
         <Route path="/login" element={<AuthPage />} />
         <Route path="/signin" element={<AuthPage />} />

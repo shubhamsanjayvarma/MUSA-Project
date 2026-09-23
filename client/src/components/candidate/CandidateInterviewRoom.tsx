@@ -28,7 +28,6 @@ import {
   AVCorrelator,
 } from '../../detectors/index.js';
 import { CandidateConsentGate } from './CandidateConsentGate.js';
-import { NeutralStatusPill } from './NeutralStatusPill.js';
 import '../../styles/candidate.css';
 
 interface CandidateInterviewRoomProps {
@@ -327,78 +326,89 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
       style={{
         width: '100vw',
         height: '100vh',
-        backgroundColor: '#090d16',
+        backgroundColor: '#0f172a',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
         overflow: 'hidden',
       }}
     >
-      {/* Top Floating Telemetry Overlay Bar */}
+      {/* Top Telemetry Header Bar */}
       <header
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
-          height: '64px',
+          height: '56px',
           padding: '0 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: 'linear-gradient(180deg, rgba(9, 13, 22, 0.92) 0%, rgba(9, 13, 22, 0) 100%)',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(8px)',
+          borderBottom: '1px solid #e2e8f0',
           zIndex: 30,
         }}
       >
-        {/* Left: Meeting Identity & Neutral Status Indicators (NO SCORES) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Left: Meeting Identity & Neutral Status Indicators */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--cand-text-primary)' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a' }}>
               Interview with Rahul Sharma
             </span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--cand-text-secondary)' }}>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
               ({activeSession.role})
             </span>
           </div>
 
-          {/* Strict Anti-Gaming: Neutral Status Pills ONLY */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <NeutralStatusPill type="proctoring-active" />
-            {screenSharing && <NeutralStatusPill type="screen-active" />}
-            {connectionState === 'RECONNECTING' && <NeutralStatusPill type="reconnecting" />}
+            <span className="cand-pill cand-pill-neutral">
+              Proctoring Active
+            </span>
+            {screenSharing && (
+              <span className="cand-pill cand-pill-neutral">
+                Screen Shared
+              </span>
+            )}
+            {connectionState === 'RECONNECTING' && (
+              <span className="cand-pill cand-pill-warning">
+                Reconnecting...
+              </span>
+            )}
           </div>
         </div>
 
         {/* Right: Tabular Call Timer & Fullscreen Control */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Tabular Numerals Timer */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
-            className="cand-card cand-tabular"
+            className="cand-tabular"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              backgroundColor: 'rgba(15, 23, 42, 0.75)',
-              padding: '5px 12px',
-              borderRadius: '9999px',
-              fontSize: '0.8125rem',
-              color: '#ffffff',
+              backgroundColor: '#f1f5f9',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontSize: '0.75rem',
+              color: '#0f172a',
               fontWeight: 600,
+              border: '1px solid #e2e8f0',
             }}
           >
-            <Clock size={13} color="var(--cand-text-secondary)" />
+            <Clock size={12} color="#64748b" />
             <span>{formatTimer(seconds)}</span>
           </div>
 
           <button
             onClick={toggleFullscreen}
             style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(15, 23, 42, 0.75)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              color: '#ffffff',
+              width: '30px',
+              height: '30px',
+              borderRadius: '6px',
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
+              color: '#0f172a',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -406,7 +416,7 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
             }}
             aria-label="Toggle fullscreen"
           >
-            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
         </div>
       </header>
@@ -431,26 +441,25 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            transform: 'scaleX(-1)', // Mirror effect for candidate comfort
+            transform: 'scaleX(-1)',
             display: videoActive ? 'block' : 'none',
           }}
         />
 
-        {/* Turned Off Camera State */}
         {!videoActive && (
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '12px',
-              color: 'var(--cand-text-secondary)',
+              gap: '10px',
+              color: '#94a3b8',
             }}
           >
             <div
               style={{
-                width: '76px',
-                height: '76px',
+                width: '64px',
+                height: '64px',
                 borderRadius: '50%',
                 backgroundColor: 'rgba(30, 41, 59, 0.8)',
                 border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -459,9 +468,9 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
                 justifyContent: 'center',
               }}
             >
-              <VideoOff size={34} color="#64748b" />
+              <VideoOff size={28} color="#94a3b8" />
             </div>
-            <span style={{ fontSize: '0.875rem' }}>Camera is currently disabled</span>
+            <span style={{ fontSize: '0.8125rem' }}>Camera disabled</span>
           </div>
         )}
 
@@ -480,19 +489,18 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
           }}
         />
 
-        {/* Candidate Identity Pill (Bottom Left) */}
+        {/* Candidate Identity Tag (Bottom Left - NO COLORED DOTS) */}
         <div
           style={{
             position: 'absolute',
-            bottom: '96px',
+            bottom: '88px',
             left: '24px',
-            backgroundColor: 'rgba(15, 23, 42, 0.8)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
+            backgroundColor: 'rgba(15, 23, 42, 0.85)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
             borderRadius: '6px',
             padding: '4px 10px',
             fontSize: '0.75rem',
-            fontWeight: 600,
+            fontWeight: 500,
             color: '#ffffff',
             zIndex: 10,
             display: 'flex',
@@ -500,22 +508,22 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
             gap: '6px',
           }}
         >
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: micActive ? '#22c55e' : '#ef4444' }} />
-          <span>You ({activeSession.candidateName})</span>
+          {micActive ? <Mic size={12} color="#94a3b8" /> : <MicOff size={12} color="#fb7185" />}
+          <span>{activeSession.candidateName} (You)</span>
         </div>
 
         {/* Recruiter Picture-in-Picture (PiP) (Bottom Right) */}
         <div
-          className="cand-card-elevated"
           style={{
             position: 'absolute',
-            bottom: '96px',
+            bottom: '88px',
             right: '24px',
-            width: '180px',
-            height: '120px',
-            borderRadius: '12px',
+            width: '160px',
+            height: '100px',
+            borderRadius: '8px',
             overflow: 'hidden',
             backgroundColor: '#1e293b',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
             zIndex: 10,
           }}
         >
@@ -527,18 +535,17 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
           <div
             style={{
               position: 'absolute',
-              bottom: '6px',
-              left: '8px',
-              backgroundColor: 'rgba(15, 23, 42, 0.8)',
-              backdropFilter: 'blur(4px)',
+              bottom: '4px',
+              left: '6px',
+              backgroundColor: 'rgba(15, 23, 42, 0.85)',
               borderRadius: '4px',
               padding: '2px 6px',
               fontSize: '0.6875rem',
-              fontWeight: 600,
+              fontWeight: 500,
               color: '#ffffff',
             }}
           >
-            Rahul Sharma (Lead)
+            Rahul Sharma
           </div>
         </div>
       </main>
@@ -547,54 +554,50 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
       <footer
         style={{
           position: 'absolute',
-          bottom: '24px',
+          bottom: '20px',
           left: 0,
           right: 0,
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          gap: '14px',
+          gap: '12px',
           zIndex: 30,
         }}
       >
-        {/* Mic Toggle */}
         <button
           onClick={toggleMic}
           className={`cand-dock-btn ${!micActive ? 'danger' : ''}`}
           id="btn-candidate-toggle-mic"
           title={micActive ? 'Mute Microphone' : 'Unmute Microphone'}
         >
-          {micActive ? <Mic size={20} /> : <MicOff size={20} />}
+          {micActive ? <Mic size={18} /> : <MicOff size={18} />}
         </button>
 
-        {/* Video Toggle */}
         <button
           onClick={toggleVideo}
           className={`cand-dock-btn ${!videoActive ? 'danger' : ''}`}
           id="btn-candidate-toggle-video"
           title={videoActive ? 'Turn Off Camera' : 'Turn On Camera'}
         >
-          {videoActive ? <Video size={20} /> : <VideoOff size={20} />}
+          {videoActive ? <Video size={18} /> : <VideoOff size={18} />}
         </button>
 
-        {/* Screen Share Toggle */}
         <button
           onClick={toggleScreenShare}
           className={`cand-dock-btn ${screenSharing ? 'active-accent' : ''}`}
           id="btn-candidate-toggle-screenshare"
           title={screenSharing ? 'Stop Screen Share' : 'Share Screen'}
         >
-          <Monitor size={20} />
+          <Monitor size={18} />
         </button>
 
-        {/* End Call Button */}
         <button
           onClick={() => setShowEndModal(true)}
           className="cand-dock-btn danger"
           id="btn-candidate-end-call"
           title="End Interview"
         >
-          <PhoneOff size={20} />
+          <PhoneOff size={18} />
         </button>
       </footer>
 
@@ -604,8 +607,8 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(9, 13, 22, 0.85)',
-            backdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(15, 23, 42, 0.5)',
+            backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -615,51 +618,35 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
           onClick={() => setShowEndModal(false)}
         >
           <div
-            className="cand-card-elevated"
+            className="cand-card"
             style={{
-              maxWidth: '460px',
+              maxWidth: '420px',
               width: '100%',
-              padding: '28px',
+              padding: '24px',
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-              <div
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  color: 'var(--cand-rose-fg)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <AlertTriangle size={22} />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--cand-text-primary)' }}>
-                  Conclude Interview Session?
-                </h3>
-                <p style={{ fontSize: '0.75rem', color: 'var(--cand-text-muted)' }}>
-                  Finalizing will close your media streams and submit your evaluation.
-                </p>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+              <AlertTriangle size={18} color="#b91c1c" />
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>
+                End Interview Session?
+              </h3>
             </div>
 
-            <p style={{ fontSize: '0.8125rem', color: 'var(--cand-text-secondary)', lineHeight: 1.5, marginBottom: '22px' }}>
-              Are you sure you wish to exit? Camera, microphone, and screen share feeds will cease immediately and your assessment session will be finalized for the recruiting team.
+            <p style={{ fontSize: '0.8125rem', color: '#475569', lineHeight: 1.45, marginBottom: '20px' }}>
+              Ending the session will finalize your telemetry record and disconnect your media streams.
             </p>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button
                 type="button"
                 onClick={() => setShowEndModal(false)}
                 disabled={isEnding}
                 className="cand-btn-outline"
+                style={{ padding: '6px 14px' }}
               >
                 Cancel
               </button>
@@ -668,15 +655,16 @@ export const CandidateInterviewRoom: React.FC<CandidateInterviewRoomProps> = ({
                 onClick={handleConfirmEndSession}
                 disabled={isEnding}
                 className="cand-btn-danger"
+                style={{ padding: '6px 14px' }}
                 id="btn-confirm-end-session"
               >
                 {isEnding ? (
                   <>
-                    <Loader2 size={15} className="animate-spin" /> Concluding...
+                    <Loader2 size={13} className="animate-spin" /> Ending...
                   </>
                 ) : (
                   <>
-                    <Power size={15} /> Yes, End Session
+                    <Power size={13} /> End Session
                   </>
                 )}
               </button>

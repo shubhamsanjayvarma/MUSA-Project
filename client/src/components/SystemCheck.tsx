@@ -322,27 +322,20 @@ export const SystemCheck: React.FC<SystemCheckProps> = ({
       )}
 
       {/* Informed Consent Agreement */}
-      <div style={{ marginBottom: 'var(--space-lg)', padding: '14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', fontSize: '0.75rem', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-        <h3 style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
-          Privacy &amp; Integrity Notice
-        </h3>
-        <p style={{ marginBottom: '6px' }}>
-          InterviewShield monitors session integrity locally in your browser. Raw video and audio streams are{' '}
-          <strong style={{ color: 'var(--color-text)' }}>never sent to or stored on our servers</strong>. Only structured detection events and periodic verification snapshots are recorded.
-        </p>
-        <p style={{ marginBottom: '10px' }}>
-          All flags are subject to human review by the hiring team before any hiring decisions are made.
+      <div style={{ marginBottom: 'var(--space-md)', padding: '12px 14px', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--color-border)', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+        <p style={{ margin: '0 0 10px 0', lineHeight: 1.45 }}>
+          Integrity signals are analyzed locally on your device. Raw video and audio are not recorded.
         </p>
 
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', paddingTop: '4px', borderTop: '1px solid var(--color-border)' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', paddingTop: '8px', borderTop: '1px solid var(--color-border)' }}>
           <input
             type="checkbox"
             checked={consentChecked}
             onChange={(e) => setConsentChecked(e.target.checked)}
-            style={{ marginTop: '2px', accentColor: 'var(--color-primary)' }}
+            style={{ accentColor: '#0f172a' }}
           />
           <span style={{ fontWeight: 500, color: 'var(--color-text)' }}>
-            I understand and consent to session integrity monitoring during this interview session.
+            I agree to assessment integrity monitoring.
           </span>
         </label>
       </div>
@@ -355,18 +348,20 @@ export const SystemCheck: React.FC<SystemCheckProps> = ({
           onClick={handleStartSession}
           className="btn btn-primary"
           style={{
+            backgroundColor: '#0f172a',
+            color: '#ffffff',
             opacity: isAllReady && consentChecked && !isSubmitting ? 1 : 0.5,
             cursor: isAllReady && consentChecked && !isSubmitting ? 'pointer' : 'not-allowed',
           }}
         >
           {isSubmitting ? (
             <>
-              <Loader2 size={16} className="animate-spin" />
+              <Loader2 size={14} className="animate-spin" />
               <span>Starting Session...</span>
             </>
           ) : (
             <>
-              <Check size={16} />
+              <Check size={14} />
               <span>Enter Interview Room</span>
             </>
           )}

@@ -1,11 +1,12 @@
 import React from 'react';
-import { CandidateConsentGate } from '../candidate/CandidateConsentGate.js';
+import { CandidateJoinScreen } from '../candidate/CandidateJoinScreen.js';
 
 /**
- * Screen 6: Candidate Consent Screen
- * Canonical route: /consent
- * Delegates to CandidateConsentGate to enforce Inverted Affirmative Consent.
+ * Screen 6: Candidate Greenroom Screen
+ * Canonical route: /consent, /join, /system-check
+ * Unified Google Meet style pre-join screen with hardware verification,
+ * access code input, and inverted affirmative consent.
  */
 export const CandidateConsentScreen: React.FC = () => {
-  return <CandidateConsentGate nextRoute="/system-check" />;
+  return <CandidateJoinScreen />;
 };
