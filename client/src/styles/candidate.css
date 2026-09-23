@@ -1,0 +1,306 @@
+/* ==========================================================================
+   InterviewShield Candidate UI Design System
+   Conforming to DESIGN.md: Dark Slate OKLCH Tokens, Subpixel 1px Ring Outlines,
+   11px-15px Typography Scale, Tabular Numbers, Anti-Slop Ergonomics.
+   ========================================================================== */
+
+:root {
+  --cand-canvas: #090d16;
+  --cand-card: #0f172a;
+  --cand-card-elevated: #141e33;
+  --cand-border-subtle: #1e293b;
+  --cand-border-strong: #334155;
+  --cand-subpixel-ring: rgba(255, 255, 255, 0.14) 0px 0px 0px 1px;
+  --cand-subpixel-ring-focus: rgba(59, 130, 246, 0.5) 0px 0px 0px 2px;
+  
+  --cand-text-primary: #f8fafc;
+  --cand-text-secondary: #94a3b8;
+  --cand-text-muted: #64748b;
+  --cand-text-inverse: #090d16;
+
+  --cand-emerald-fg: #34d399;
+  --cand-emerald-bg: rgba(16, 185, 129, 0.12);
+  --cand-emerald-border: rgba(16, 185, 129, 0.3);
+
+  --cand-blue-fg: #60a5fa;
+  --cand-blue-primary: #3b82f6;
+  --cand-blue-hover: #2563eb;
+  --cand-blue-bg: rgba(59, 130, 246, 0.12);
+  --cand-blue-border: rgba(59, 130, 246, 0.3);
+
+  --cand-amber-fg: #fbbf24;
+  --cand-amber-bg: rgba(245, 158, 11, 0.12);
+  --cand-amber-border: rgba(245, 158, 11, 0.3);
+
+  --cand-rose-fg: #fb7185;
+  --cand-rose-bg: rgba(244, 63, 94, 0.12);
+  --cand-rose-border: rgba(244, 63, 94, 0.3);
+}
+
+.cand-root {
+  min-height: 100vh;
+  background-color: var(--cand-canvas);
+  color: var(--cand-text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.cand-root * {
+  box-sizing: border-box;
+}
+
+/* Tabular Numerals for Timers, Latency, and Counters */
+.cand-tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-family: 'JetBrains Mono', 'Geist Mono', Menlo, monospace;
+}
+
+/* Subpixel Ring Card */
+.cand-card {
+  background-color: var(--cand-card);
+  border: 1px solid var(--cand-border-subtle);
+  box-shadow: var(--cand-subpixel-ring);
+  border-radius: 12px;
+}
+
+.cand-card-elevated {
+  background-color: var(--cand-card-elevated);
+  border: 1px solid var(--cand-border-subtle);
+  box-shadow: var(--cand-subpixel-ring), 0 8px 24px rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+}
+
+/* Neutral Status Pills (Anti-Gaming: No Scores or Deductions) */
+.cand-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem; /* 12px */
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.cand-pill-neutral {
+  background-color: rgba(30, 41, 59, 0.75);
+  color: var(--cand-text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--cand-subpixel-ring);
+}
+
+.cand-pill-active {
+  background-color: var(--cand-emerald-bg);
+  color: var(--cand-emerald-fg);
+  border: 1px solid var(--cand-emerald-border);
+}
+
+.cand-pill-info {
+  background-color: var(--cand-blue-bg);
+  color: var(--cand-blue-fg);
+  border: 1px solid var(--cand-blue-border);
+}
+
+.cand-pill-warning {
+  background-color: var(--cand-amber-bg);
+  color: var(--cand-amber-fg);
+  border: 1px solid var(--cand-amber-border);
+}
+
+/* Pulsing Status Dot */
+.cand-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--cand-emerald-fg);
+  box-shadow: 0 0 6px var(--cand-emerald-fg);
+  animation: candPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes candPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
+}
+
+/* Candidate Buttons */
+.cand-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  background-color: var(--cand-blue-primary);
+  color: #ffffff;
+  font-size: 0.875rem; /* 14px */
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.cand-btn-primary:hover:not(:disabled) {
+  background-color: var(--cand-blue-hover);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+}
+
+.cand-btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.cand-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--cand-text-primary);
+  border: 1px solid var(--cand-border-strong);
+  box-shadow: var(--cand-subpixel-ring);
+  font-size: 0.8125rem; /* 13px */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cand-btn-outline:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: #475569;
+}
+
+.cand-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  background-color: #ef4444;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+}
+
+.cand-btn-danger:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
+/* Affirmative Consent Checkbox Box */
+.cand-consent-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background-color: var(--cand-card-elevated);
+  border: 1px solid var(--cand-border-subtle);
+  box-shadow: var(--cand-subpixel-ring);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.cand-consent-box:hover {
+  border-color: #475569;
+}
+
+.cand-consent-box.checked {
+  border-color: var(--cand-blue-primary);
+  background-color: rgba(59, 130, 246, 0.08);
+}
+
+.cand-checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1.5px solid #64748b;
+  background-color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+  margin-top: 1px;
+  transition: all 0.15s ease;
+}
+
+.cand-checkbox.checked {
+  background-color: var(--cand-blue-primary);
+  border-color: var(--cand-blue-primary);
+}
+
+/* Interactive Dock Circle Buttons */
+.cand-dock-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background-color: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: var(--cand-subpixel-ring);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cand-dock-btn:hover {
+  background-color: rgba(51, 65, 85, 0.95);
+  transform: translateY(-1px);
+}
+
+.cand-dock-btn.active-accent {
+  background-color: var(--cand-blue-primary);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.cand-dock-btn.danger {
+  background-color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+}
+
+.cand-dock-btn.danger:hover {
+  background-color: #dc2626;
+}
+
+/* Audio Level Bar in System Check */
+.cand-audio-meter {
+  height: 6px;
+  border-radius: 3px;
+  background-color: #1e293b;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.cand-audio-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #3b82f6 70%, #f59e0b 100%);
+  border-radius: 3px;
+  transition: width 0.08s ease-out;
+}
