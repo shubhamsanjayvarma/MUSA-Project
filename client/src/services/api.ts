@@ -162,6 +162,7 @@ export const authApi = {
     }
   },
   getToken: getAuthToken,
+  setToken: setAuthToken,
   clearToken: clearAuthToken,
 };
 
