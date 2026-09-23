@@ -6,6 +6,8 @@ import { authRouter } from './api/routes/auth.routes.js';
 import { interviewRouter } from './api/routes/interview.routes.js';
 import { sessionRouter } from './api/routes/session.routes.js';
 import { evidenceRouter } from './api/routes/evidence.routes.js';
+import { metricsRouter } from './api/routes/metrics.routes.js';
+import { httpMetricsMiddleware } from './telemetry/metrics.js';
 import { config } from './config.js';
 
 export const logger = pino({
@@ -50,7 +52,8 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Request logging
+// Request logging and RED metrics
+app.use(httpMetricsMiddleware);
 app.use((req: Request, _res: Response, next: NextFunction) => {
   logger.info({ method: req.method, url: req.url }, 'Incoming request');
   next();
@@ -58,6 +61,7 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 
 // API Routes
 app.use('/api/health', healthRouter);
+app.use('/api/metrics', metricsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/interviews', interviewRouter);
 app.use('/api/sessions', sessionRouter);
