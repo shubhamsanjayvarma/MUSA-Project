@@ -22,6 +22,7 @@ export type WSServerMessageType =
   | 'session:error'
   | 'ack'
   | 'risk:update'
+  | 'incident:new'
   | 'error'
   | 'pong';
 
@@ -173,11 +174,17 @@ export interface PongMessage extends WSBaseMessage {
   type: 'pong';
 }
 
+export interface IncidentNewMessage extends WSBaseMessage {
+  type: 'incident:new';
+  payload: Record<string, unknown>;
+}
+
 export type WSServerMessage =
   | SessionJoinedMessage
   | SessionConfirmedMessage
   | AckMessage
   | RiskUpdateMessage
+  | IncidentNewMessage
   | ErrorMessage
   | SessionErrorMessage
   | PongMessage;

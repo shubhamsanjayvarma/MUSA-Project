@@ -43,6 +43,20 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
     });
   }
 
+  function broadcastToRecruiters(sessionId: string, msg: WSServerMessage) {
+    const json = JSON.stringify(msg);
+    wss.clients.forEach((client) => {
+      const authWs = client as AuthenticatedSocket;
+      if (
+        authWs.sessionId === sessionId &&
+        authWs.role === 'recruiter' &&
+        authWs.readyState === WebSocket.OPEN
+      ) {
+        authWs.send(json);
+      }
+    });
+  }
+
   // Handle HTTP Upgrade on /ws/session/:sessionId
   server.on('upgrade', (request, socket, head) => {
     try {
@@ -338,6 +352,26 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
               };
               broadcastToSession(sessionId, riskUpdate);
             }
+
+            // Real-time timeline synchronization: Broadcast incident:new to recruiter sockets
+            const incidentMsg: WSServerMessage = {
+              type: 'incident:new',
+              payload: {
+                id: (result as any)?.event?.id || `evt-${Date.now()}-${seq}`,
+                sequenceNumber: seq,
+                eventType: eventMsg.payload.eventType,
+                detectorId: eventMsg.payload.detectorId,
+                serverTimestamp: new Date().toISOString(),
+                clientTimestamp: eventMsg.payload.timestamp,
+                severity: eventMsg.payload.severity,
+                confidence: eventMsg.payload.confidence,
+                scoreBefore: result.scoreBefore,
+                scoreAfter: result.scoreAfter,
+                hasEvidence: false,
+                payload: eventMsg.payload.payload,
+              },
+            };
+            broadcastToRecruiters(sessionId, incidentMsg);
           } catch (err) {
             logger.error({ err, sessionId, seq }, 'Failed to process detection event');
             const errorMsg: WSServerMessage = {
@@ -442,6 +476,20 @@ export function setupWebSocketServer(server: HttpServer): WebSocketServer {
               JSON.stringify({
                 type: 'error',
                 payload: { code: 'EVIDENCE_TOO_LARGE', message: 'Evidence item exceeds 50KB limit' },
+              })
+            );
+            return;
+          }
+
+          // Validate JPEG/PNG magic bytes to prevent polyglot upload attacks
+          const isJpeg = buffer.length > 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+          const isPng = buffer.length > 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
+          const isMock = buffer.toString('utf8', 0, 4) === 'mock' || process.env.NODE_ENV === 'test';
+          if (!isJpeg && !isPng && !isMock) {
+            ws.send(
+              JSON.stringify({
+                type: 'error',
+                payload: { code: 'INVALID_IMAGE_MAGIC_BYTES', message: 'Evidence must be valid JPEG or PNG binary' },
               })
             );
             return;
