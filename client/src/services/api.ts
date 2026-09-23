@@ -93,6 +93,14 @@ const setAuthToken = (token: string): void => {
 
 const clearAuthToken = (): void => {
   localStorage.removeItem('interviewshield_token');
+  localStorage.removeItem('interviewshield_user');
+  sessionStorage.removeItem('interviewshield_session_token');
+};
+
+const isAuthenticated = (): boolean => {
+  const token = getAuthToken();
+  const user = localStorage.getItem('interviewshield_user');
+  return Boolean(token || user);
 };
 
 const getCandidateToken = (): string | null => {
@@ -157,6 +165,8 @@ export const authApi = {
   logout: async (): Promise<void> => {
     try {
       await request('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // Best-effort backend notification (e.g. serverless / static client deployments)
     } finally {
       clearAuthToken();
     }
@@ -164,6 +174,7 @@ export const authApi = {
   getToken: getAuthToken,
   setToken: setAuthToken,
   clearToken: clearAuthToken,
+  isAuthenticated,
 };
 
 export const interviewApi = {

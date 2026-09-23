@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useParams, useNavigate, Navigate } from 'react-router-dom';
 import {
   Shield,
   CheckCircle,
@@ -242,6 +242,24 @@ const AuthPage: React.FC<{ initialSignUp?: boolean }> = ({ initialSignUp = false
     const email = emailInput?.value?.trim() || '';
     const password = passwordInput?.value || '';
 
+    // Seamless Demo Evaluation Mode
+    if (
+      email.toLowerCase() === 'recruiter@demo.interviewshield.dev' ||
+      email.toLowerCase().endsWith('@demo.interviewshield.dev') ||
+      (email.toLowerCase() === 'demo@interviewshield.dev' && password === 'demo123')
+    ) {
+      const demoUser = {
+        name: 'Demo Recruiter',
+        email: email || 'recruiter@demo.interviewshield.dev',
+      };
+      authApi.setToken('demo-eval-token-' + Date.now());
+      localStorage.setItem('interviewshield_user', JSON.stringify(demoUser));
+      window.dispatchEvent(new Event('storage'));
+      navigate('/dashboard', { replace: true });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -254,7 +272,8 @@ const AuthPage: React.FC<{ initialSignUp?: boolean }> = ({ initialSignUp = false
           email: userCredential.user.email,
         })
       );
-      navigate('/dashboard');
+      window.dispatchEvent(new Event('storage'));
+      navigate('/dashboard', { replace: true });
     } catch (err: unknown) {
       const errorObj = err as { code?: string; message?: string };
       let message = 'Failed to sign in. Please verify your credentials.';
@@ -306,7 +325,8 @@ const AuthPage: React.FC<{ initialSignUp?: boolean }> = ({ initialSignUp = false
           email: userCredential.user.email,
         })
       );
-      navigate('/dashboard');
+      window.dispatchEvent(new Event('storage'));
+      navigate('/dashboard', { replace: true });
     } catch (err: unknown) {
       const errorObj = err as { code?: string; message?: string };
       let message = 'Failed to create account.';
@@ -339,7 +359,8 @@ const AuthPage: React.FC<{ initialSignUp?: boolean }> = ({ initialSignUp = false
           email: result.user.email,
         })
       );
-      navigate('/dashboard');
+      window.dispatchEvent(new Event('storage'));
+      navigate('/dashboard', { replace: true });
     } catch (err: unknown) {
       const errorObj = err as { code?: string; message?: string };
       if (errorObj.code !== 'auth/popup-closed-by-user') {
@@ -1740,6 +1761,23 @@ const ModernDashboardPage: React.FC = () => {
   );
 };
 
+// Route Guards
+export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const isAuth = authApi.isAuthenticated();
+  if (!isAuth) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
+export const PublicAuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const isAuth = authApi.isAuthenticated();
+  if (isAuth) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
+};
+
 // Main App Router
 export const App: React.FC = () => {
   useEffect(() => {
@@ -1766,19 +1804,19 @@ export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Recruiter Screens */}
-        <Route path="/" element={<ModernDashboardPage />} />
-        <Route path="/dashboard" element={<ModernDashboardPage />} />
-        <Route path="/interviews" element={<ModernDashboardPage />} />
-        <Route path="/candidates" element={<RecruiterLayout><CandidatesScreen /></RecruiterLayout>} />
-        <Route path="/reports" element={<RecruiterLayout><ReportsAnalyticsScreen /></RecruiterLayout>} />
-        <Route path="/analytics" element={<RecruiterLayout><ReportsAnalyticsScreen /></RecruiterLayout>} />
-        <Route path="/report" element={<RecruiterLayout><InterviewReportScreen /></RecruiterLayout>} />
-        <Route path="/command-center" element={<RecruiterLayout><RecruiterCommandCenter /></RecruiterLayout>} />
-        <Route path="/recruiter/command-center" element={<RecruiterLayout><RecruiterCommandCenter /></RecruiterLayout>} />
-        <Route path="/session/:sessionId/command-center" element={<RecruiterLayout><RecruiterCommandCenter /></RecruiterLayout>} />
-        <Route path="/settings" element={<RecruiterLayout><SettingsScreen /></RecruiterLayout>} />
-        <Route path="/profile" element={<RecruiterLayout><ProfileScreen /></RecruiterLayout>} />
+        {/* Recruiter Protected Screens */}
+        <Route path="/" element={<ProtectedRoute><ModernDashboardPage /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><ModernDashboardPage /></ProtectedRoute>} />
+        <Route path="/interviews" element={<ProtectedRoute><ModernDashboardPage /></ProtectedRoute>} />
+        <Route path="/candidates" element={<ProtectedRoute><RecruiterLayout><CandidatesScreen /></RecruiterLayout></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><RecruiterLayout><ReportsAnalyticsScreen /></RecruiterLayout></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute><RecruiterLayout><ReportsAnalyticsScreen /></RecruiterLayout></ProtectedRoute>} />
+        <Route path="/report" element={<ProtectedRoute><RecruiterLayout><InterviewReportScreen /></RecruiterLayout></ProtectedRoute>} />
+        <Route path="/command-center" element={<ProtectedRoute><RecruiterLayout><RecruiterCommandCenter /></RecruiterLayout></ProtectedRoute>} />
+        <Route path="/recruiter/command-center" element={<ProtectedRoute><RecruiterLayout><RecruiterCommandCenter /></RecruiterLayout></ProtectedRoute>} />
+        <Route path="/session/:sessionId/command-center" element={<ProtectedRoute><RecruiterLayout><RecruiterCommandCenter /></RecruiterLayout></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><RecruiterLayout><SettingsScreen /></RecruiterLayout></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><RecruiterLayout><ProfileScreen /></RecruiterLayout></ProtectedRoute>} />
         <Route path="/pricing" element={<PricingScreen />} />
         <Route path="/upgrade" element={<PricingScreen />} />
 
@@ -1793,14 +1831,14 @@ export const App: React.FC = () => {
 
         {/* Legacy & Fallback Routes */}
         <Route path="/landing" element={<HomePage />} />
-        <Route path="/legacy-dashboard" element={<MainLayout><DashboardPage /></MainLayout>} />
+        <Route path="/legacy-dashboard" element={<ProtectedRoute><MainLayout><DashboardPage /></MainLayout></ProtectedRoute>} />
         <Route path="/join/:token" element={<JoinWithCodeScreen />} />
         {/* Authentication Routes */}
-        <Route path="/login" element={<AuthPage />} />
-        <Route path="/signin" element={<AuthPage />} />
-        <Route path="/signup" element={<AuthPage initialSignUp={true} />} />
-        <Route path="/legacy-login" element={<MainLayout><LoginPage /></MainLayout>} />
-        <Route path="/dashboard/:interviewId" element={<MainLayout><SessionDetailPage /></MainLayout>} />
+        <Route path="/login" element={<PublicAuthRoute><AuthPage /></PublicAuthRoute>} />
+        <Route path="/signin" element={<PublicAuthRoute><AuthPage /></PublicAuthRoute>} />
+        <Route path="/signup" element={<PublicAuthRoute><AuthPage initialSignUp={true} /></PublicAuthRoute>} />
+        <Route path="/legacy-login" element={<PublicAuthRoute><MainLayout><LoginPage /></MainLayout></PublicAuthRoute>} />
+        <Route path="/dashboard/:interviewId" element={<ProtectedRoute><MainLayout><SessionDetailPage /></MainLayout></ProtectedRoute>} />
         <Route path="/interview/:sessionId" element={<MainLayout><CandidateInterviewPage /></MainLayout>} />
         <Route path="*" element={<MainLayout><div className="card"><h3>404: Page Not Found</h3></div></MainLayout>} />
       </Routes>

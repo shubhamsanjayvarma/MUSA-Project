@@ -53,9 +53,16 @@ export const ProfileScreen: React.FC = () => {
     } catch {
       // Ignore signOut errors
     }
-    await authApi.logout();
+    try {
+      await authApi.logout();
+    } catch {
+      // Fallback in case of network issues
+    }
+    authApi.clearToken();
     localStorage.removeItem('interviewshield_user');
-    navigate('/login');
+    sessionStorage.clear();
+    window.dispatchEvent(new Event('storage'));
+    navigate('/login', { replace: true });
   };
 
   const handleSaveProfile = () => {
