@@ -426,7 +426,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
           }}
         >
-          <table className="is-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'fixed' }}>
+          <table className="is-table" style={{ width: '100%', minWidth: '820px', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'fixed' }}>
             <thead>
               <tr
                 style={{
@@ -440,11 +440,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                   height: '42px',
                 }}
               >
-                <th style={{ padding: '0 20px', width: '32%' }}>Candidate</th>
-                <th style={{ padding: '0 16px', width: '20%' }}>Role</th>
-                <th style={{ padding: '0 16px', width: '20%' }}>Scheduled Time</th>
-                <th style={{ padding: '0 16px', width: '12%' }}>Status</th>
-                <th style={{ padding: '0 20px', width: '16%', textAlign: 'right' }}>Actions</th>
+                <th style={{ padding: '0 20px', width: '26%' }}>Candidate</th>
+                <th style={{ padding: '0 16px', width: '17%' }}>Role</th>
+                <th style={{ padding: '0 16px', width: '18%' }}>Scheduled Time</th>
+                <th style={{ padding: '0 16px', width: '14%' }}>Status</th>
+                <th style={{ padding: '0 20px', width: '25%', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -486,17 +486,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                     </td>
 
                     {/* Role */}
-                    <td style={{ padding: '0 16px', color: 'var(--is-text-secondary)', fontSize: '0.875rem' }}>
+                    <td style={{ padding: '0 16px', color: 'var(--is-text-secondary)', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
                       {item.role}
                     </td>
 
                     {/* Date & Time */}
-                    <td style={{ padding: '0 16px', color: 'var(--is-text-secondary)', fontSize: '0.875rem' }}>
+                    <td style={{ padding: '0 16px', color: 'var(--is-text-secondary)', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
                       <span style={{ fontVariantNumeric: 'tabular-nums' }}>{item.dateTime}</span>
                     </td>
 
                     {/* Status: Clean semantic indicator (frontend-audit anti-slop compliant) */}
-                    <td style={{ padding: '0 16px' }}>
+                    <td style={{ padding: '0 16px', whiteSpace: 'nowrap' }}>
                       {isLive ? (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                           <span
@@ -527,8 +527,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                     </td>
 
                     {/* Direct Actions & Overflow Menu */}
-                    <td style={{ padding: '0 20px', textAlign: 'right', position: 'relative' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                    <td style={{ padding: '0 20px', textAlign: 'right', position: 'relative', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
                         {/* Direct Action 1: Start Recruiter Call (Host) */}
                         <button
                           type="button"

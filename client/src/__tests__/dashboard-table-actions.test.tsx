@@ -270,11 +270,12 @@ describe('Dashboard Table Actions & Anti-Slop Workstation (4-Tier TDD)', () => {
       );
 
       expect(html).toContain('table-layout:fixed');
-      expect(html).toContain('<th style="padding:0 20px;width:32%">Candidate</th>');
-      expect(html).toContain('<th style="padding:0 16px;width:20%">Role</th>');
-      expect(html).toContain('<th style="padding:0 16px;width:20%">Scheduled Time</th>');
-      expect(html).toContain('<th style="padding:0 16px;width:12%">Status</th>');
-      expect(html).toContain('<th style="padding:0 20px;width:16%;text-align:right">Actions</th>');
+      expect(html).toContain('min-width:820px');
+      expect(html).toContain('<th style="padding:0 20px;width:26%">Candidate</th>');
+      expect(html).toContain('<th style="padding:0 16px;width:17%">Role</th>');
+      expect(html).toContain('<th style="padding:0 16px;width:18%">Scheduled Time</th>');
+      expect(html).toContain('<th style="padding:0 16px;width:14%">Status</th>');
+      expect(html).toContain('<th style="padding:0 20px;width:25%;text-align:right">Actions</th>');
     });
   });
 
